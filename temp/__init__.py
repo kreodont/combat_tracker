@@ -7,7 +7,8 @@ class Value(typing.NamedTuple):
     name: str
     id: str = uuid.uuid4()
     value: typing.Any = 0
-    actions_sequence: list = []
+    last_action: typing.Optional['Action'] = None
+    actions_sequence: typing.List['Action'] = []
     subscribers: list = []
     short_description: str = f'{value}'
     full_description: str = short_description
@@ -32,13 +33,28 @@ class Action(typing.NamedTuple):
     next_action: typing.Optional['Action'] = None
     previous_action: typing.Optional['Action'] = None
 
-    def change_value(self, value: Value):
-        return change_value(value, self)
+    def change_value(self, value: Value, rollback_function=None):
+        return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
 
 
-def change_value(value_to_change: Value, action_to_perform: Action) -> Value:
+def change_value(*,
+                 value_to_change: Value,
+                 action_to_perform: Action,
+                 rollback_function: typing.Callable=None,
+                 ) -> Value:
     new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
-    fulfilled_action = action_to_perform._replace(previous_value=value_to_change, actual_value=new_value)
+    if rollback_function is None:
+        def defaul_rollback(v: Value = None) -> Value:
+            if not v:
+                pass
+            old_value = value_to_change
+            return old_value
+        rollback_function = defaul_rollback
+
+    fulfilled_action = action_to_perform._replace(
+            previous_value=value_to_change,
+            actual_value=new_value,
+            rollback=rollback_function)
     new_value = new_value._replace(actions_sequence=value_to_change.actions_sequence + [fulfilled_action])
     return new_value
 
