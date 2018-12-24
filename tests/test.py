@@ -46,3 +46,14 @@ def test_series_of_changes():
     another_value = change_value(new_value, new_action)
     assert another_value.value == 12
     assert len(another_value.actions_sequence) == 2
+
+
+def test_change_from_action():
+    def change_to_100(v: Value) -> Value:
+        v = v._replace(value=100)
+        return v
+
+    value = Value(name='some')
+    action = Action(function=change_to_100)
+    value = action.change_value(value)
+    assert value.value == 100

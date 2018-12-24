@@ -32,8 +32,8 @@ class Action(typing.NamedTuple):
     next_action: typing.Optional['Action'] = None
     previous_action: typing.Optional['Action'] = None
 
-    # def change_value(self, value: Value):
-    #     return change_value(value, self)
+    def change_value(self, value: Value):
+        return change_value(value, self)
 
 
 def change_value(value_to_change: Value, action_to_perform: Action) -> Value:
