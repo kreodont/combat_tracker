@@ -1,4 +1,4 @@
-from temp import Action, Value, change_value
+from temp import Action, Value, change_value, roll_back_action
 
 
 def test_create_empty_action():
@@ -111,3 +111,45 @@ def test_multiple_action_aplying():
     value = Action(function=changing_function).change_value(value)
     assert value.value == 3
     assert len(value.actions_sequence) == 3
+
+
+def test_that_rollback_returns_the_same_object_if_no_actions_were_performed_yet():
+    value = Value(name='some', value=15)
+    new_value = roll_back_action(value=value)
+    assert new_value == value
+
+
+def test_that_rollback_works_with_last_action():
+    def changing_function(v: Value) -> Value:
+        v = v._replace(value='Changed Value')
+        return v
+
+    initial_value = Value(name='some', value='Initial Value')
+    changed_value = Action(function=changing_function).change_value(initial_value)
+    assert changed_value.value == 'Changed Value'
+    previous_value = roll_back_action(value=changed_value)
+    assert previous_value == initial_value
+
+
+def test_that_rollback_returns_the_same_object_if_wrong_action_id_specified():
+    def set_14(v: Value) -> Value:
+        v = v._replace(value=14)
+        return v
+
+    initial_value = Value(name='Some', value=13)
+    changed_value = Action(function=set_14, id='123').change_value(initial_value)
+    assert changed_value.value == 14
+    rolled_back_value = roll_back_action(value=changed_value, action_id='12')
+    assert rolled_back_value == changed_value
+
+
+def test_explicitly_specified_rollback():
+    def set_14(v: Value) -> Value:
+        v = v._replace(value=14)
+        return v
+
+    initial_value = Value(name='Some', value=13)
+    changed_value = Action(function=set_14, id='123').change_value(initial_value)
+    assert changed_value.value == 14
+    rolled_back_value = roll_back_action(value=changed_value, action_id='123')
+    assert rolled_back_value == initial_value

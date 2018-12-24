@@ -32,6 +32,7 @@ class Action(typing.NamedTuple):
     visibility_level: str = 'visible'
     next_action: typing.Optional['Action'] = None
     previous_action: typing.Optional['Action'] = None
+    rolled_back: bool = False
 
     def change_value(self, value: Value, rollback_function=None):
         return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
@@ -63,10 +64,16 @@ def change_value(*,
     return new_value
 
 
-def roll_back_action(value: Value, action_id: typing.Optional[str] = None):
+def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) -> Value:
     if not value.actions_sequence:
-        raise Exception(f'Value {value} action {action_id} was tried to rollback, '
-                        f'but there were no actions in this value')
+        return value
+    if action_id is None:
+        return value.last_action.rollback(value)
+    matching_actions = [a for a in value.actions_sequence if a.id == action_id]
+    if not matching_actions:
+        return value
+    action = matching_actions[0]
+    return action.rollback(value)
 
 
 if __name__ == '__main__':
