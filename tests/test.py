@@ -153,3 +153,19 @@ def test_explicitly_specified_rollback():
     assert changed_value.value == 14
     rolled_back_value = roll_back_action(value=changed_value, action_id='123')
     assert rolled_back_value == initial_value
+
+
+def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_recalculated():
+    def increment(v: Value) -> Value:
+        v = v._replace(value=v.value + 1)
+        return v
+
+    initial_value = Value(name='some', value=1)
+    v_1 = Action(function=increment, id='first_increment').change_value(initial_value)
+    assert v_1.value == 2
+    v_2 = Action(function=increment, id='second_increment').change_value(v_1)
+    assert v_2.value == 3
+    final_value = Action(function=increment, id='third_increment').change_value(v_2)
+    assert final_value.value == 4
+    final_value = roll_back_action(value=final_value, action_id='second_increment')
+    assert final_value.value == 3

@@ -67,12 +67,21 @@ def change_value(*,
 def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) -> Value:
     if not value.actions_sequence:
         return value
+
     if action_id is None:
         return value.last_action.rollback(value)
+
     matching_actions = [a for a in value.actions_sequence if a.id == action_id]
     if not matching_actions:
         return value
+
     action = matching_actions[0]
+    action_number = value.actions_sequence.index(action)
+    if action_number < len(value.actions_sequence):  # Not the last action, need to repeat all following
+        actions_to_repeat = [a for a in value.actions_sequence[action_number:] if not a.rolled_back]
+        print(actions_to_repeat)
+        pass
+
     return action.rollback(value)
 
 
