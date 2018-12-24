@@ -96,5 +96,18 @@ def test_non_default_rollback():
     value = Value(name='some', value=14)
     new_value = Action(function=changing_function).change_value(value, rollback_function=rollback_function)
     assert new_value.value == 100
-    rolled_back_value = Action(function=new_value.actions_sequence[-1].rollback).change_value(new_value)
+    rolled_back_value = Action(function=new_value.last_action.rollback).change_value(new_value)
     assert rolled_back_value.value == 105
+
+
+def test_multiple_action_aplying():
+    def changing_function(v: Value) -> Value:
+        v = v._replace(value=v.value + 1)
+        return v
+
+    value = Value(name='some', value=0)
+    value = Action(function=changing_function).change_value(value)
+    value = Action(function=changing_function).change_value(value)
+    value = Action(function=changing_function).change_value(value)
+    assert value.value == 3
+    assert len(value.actions_sequence) == 3

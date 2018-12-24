@@ -42,7 +42,9 @@ def change_value(*,
                  action_to_perform: Action,
                  rollback_function: typing.Callable=None,
                  ) -> Value:
-    new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
+    new_value = value_to_change._replace(
+            value=action_to_perform.function(value_to_change).value,
+    )
     if rollback_function is None:
         def defaul_rollback(v: Value = None) -> Value:
             if not v:
@@ -55,7 +57,9 @@ def change_value(*,
             previous_value=value_to_change,
             actual_value=new_value,
             rollback=rollback_function)
-    new_value = new_value._replace(actions_sequence=value_to_change.actions_sequence + [fulfilled_action])
+    new_value = new_value._replace(
+            actions_sequence=value_to_change.actions_sequence + [fulfilled_action],
+            last_action=fulfilled_action)
     return new_value
 
 
