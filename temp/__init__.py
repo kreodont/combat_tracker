@@ -36,13 +36,11 @@ class Action(typing.NamedTuple):
     #     return change_value(value, self)
 
 
-def change_value(value_to_change: Value, action_to_perform: Action):
-    new_actions_list = value_to_change.actions_sequence + [action_to_perform]
-    value_to_change = value_to_change._replace(actions_sequence=new_actions_list)
-    action_to_perform = action_to_perform._replace(
-            previous_value=value_to_change.value,
-            actual_value=action_to_perform.function(value_to_change))
-    return action_to_perform
+def change_value(value_to_change: Value, action_to_perform: Action) -> Value:
+    new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
+    fulfilled_action = action_to_perform._replace(previous_value=value_to_change, actual_value=new_value)
+    new_value = new_value._replace(actions_sequence=value_to_change.actions_sequence + [fulfilled_action])
+    return new_value
 
 
 def roll_back_action(value: Value, action_id: typing.Optional[str] = None):

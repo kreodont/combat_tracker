@@ -19,9 +19,9 @@ def test_change_integer_value_from_0_to_10():
         return v
 
     action = Action(name='test_action', id='1', function=f)
-    action = change_value(value, action)
-    assert action.actual_value.value == 10
-    assert len(action.actual_value.actions_sequence) == 1
+    new_value = change_value(value, action)
+    assert new_value.value == 10
+    assert len(new_value.actions_sequence) == 1
 
 
 def test_series_of_changes():
@@ -37,12 +37,12 @@ def test_series_of_changes():
         return v
 
     action = Action(function=change_to_11)
-    action = change_value(value, action)
-    assert action.actual_value.value == 11
-    assert len(action.actual_value.actions_sequence) == 1
+    new_value = change_value(value, action)
+    print(new_value.value)
+    assert new_value.value == 11
+    assert len(new_value.actions_sequence) == 1
 
-    action = Action(function=change_to_12)
-    action = change_value(value, action)
-    assert action.actual_value.value == 12
-    assert len(action.actual_value.actions_sequence) == 2
-
+    new_action = Action(function=change_to_12)
+    another_value = change_value(new_value, new_action)
+    assert another_value.value == 12
+    assert len(another_value.actions_sequence) == 2
