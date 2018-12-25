@@ -21,6 +21,12 @@ class Value(typing.NamedTuple):
     def roll_back_action(self, action_id: str) -> 'Value':
         return roll_back_action(value=self, action_id=action_id)
 
+    def change(self, *, action_to_perform: 'Action', rollback_function: typing.Callable=None):
+        return change_value(
+                value_to_change=self,
+                action_to_perform=action_to_perform,
+                rollback_function=rollback_function)
+
 
 class Action(typing.NamedTuple):
     id: str = uuid.uuid4()

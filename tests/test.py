@@ -209,3 +209,17 @@ def test_rollback_from_value_object():
     rolled_back_value = rolled_back_value.roll_back_action(action_id='first_increment')
     assert rolled_back_value.value == 110
     assert len(rolled_back_value.actions_sequence) == 1
+
+
+def test_change_from_value_object():
+    def increment_by_10(v: Value) -> Value:
+        v = v._replace(value=v.value + 10)
+        return v
+
+    value = Value(name='some', value=-5)
+    value = value.change(action_to_perform=Action(function=increment_by_10))
+    value = value.change(action_to_perform=Action(function=increment_by_10))
+    value = value.change(action_to_perform=Action(function=increment_by_10))
+    value = value.change(action_to_perform=Action(function=increment_by_10))
+    assert value.value == 35
+    assert len(value.actions_sequence) == 4
