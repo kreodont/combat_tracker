@@ -18,6 +18,9 @@ class Value(typing.NamedTuple):
     def __repr__(self):
         return f'{self.name}: {self.value}'
 
+    def roll_back_action(self, action_id: str) -> 'Value':
+        return roll_back_action(value=self, action_id=action_id)
+
 
 class Action(typing.NamedTuple):
     id: str = uuid.uuid4()

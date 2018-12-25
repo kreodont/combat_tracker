@@ -171,3 +171,41 @@ def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_
     final_value = roll_back_action(value=final_value, action_id='second_increment')
     assert final_value.value == 3
     assert len(final_value.actions_sequence) == 2
+
+
+def test_several_roll_backs():
+    def increment_by_10(v: Value) -> Value:
+        v = v._replace(value=v.value + 10)
+        return v
+
+    initial_value = Value(name='some', value=100)
+    v_1 = Action(function=increment_by_10, id='first_increment').change_value(initial_value)
+    assert v_1.value == 110
+    v_2 = Action(function=increment_by_10, id='second_increment').change_value(v_1)
+    assert v_2.value == 120
+    final_value = Action(function=increment_by_10, id='third_increment').change_value(v_2)
+    assert final_value.value == 130
+    assert len(final_value.actions_sequence) == 3
+    rolled_back_value = roll_back_action(value=final_value, action_id='second_increment')
+    rolled_back_value = roll_back_action(value=rolled_back_value, action_id='first_increment')
+    assert rolled_back_value.value == 110
+    assert len(rolled_back_value.actions_sequence) == 1
+
+
+def test_rollback_from_value_object():
+    def increment_by_10(v: Value) -> Value:
+        v = v._replace(value=v.value + 10)
+        return v
+
+    initial_value = Value(name='some', value=100)
+    v_1 = Action(function=increment_by_10, id='first_increment').change_value(initial_value)
+    assert v_1.value == 110
+    v_2 = Action(function=increment_by_10, id='second_increment').change_value(v_1)
+    assert v_2.value == 120
+    final_value = Action(function=increment_by_10, id='third_increment').change_value(v_2)
+    assert final_value.value == 130
+    assert len(final_value.actions_sequence) == 3
+    rolled_back_value = final_value.roll_back_action(action_id='second_increment')
+    rolled_back_value = rolled_back_value.roll_back_action(action_id='first_increment')
+    assert rolled_back_value.value == 110
+    assert len(rolled_back_value.actions_sequence) == 1
