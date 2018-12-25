@@ -49,7 +49,7 @@ class Action(typing.NamedTuple):
     full_description: str = short_description
     visibility_level: str = 'visible'
 
-    def change_value(self, *, value: Value, rollback_function=None):
+    def change_value(self, *, value: Value, rollback_function):
         return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
 
 
@@ -66,15 +66,20 @@ class Effect(typing.NamedTuple):
     def applied(self):
         return bool(self.values)
 
-    def apply(self, *, value: Value, short_description: str = '', full_description: str = '') -> Value:
+    def apply(self, *, value: Value, rollback_function: typing.Callable,
+              short_description: str = '', full_description: str = '') -> Value:
         return apply_effect(
-                effect=self, value=value, short_description=short_description, full_description=full_description)
+                effect=self,
+                value=value,
+                short_description=short_description,
+                full_description=full_description,
+                rollback_function=rollback_function)
 
 
 def change_value(*,
                  value_to_change: Value,
                  action_to_perform: Action,
-                 rollback_function: typing.Callable=None,
+                 rollback_function: typing.Optional[typing.Callable],
                  ) -> Value:
     new_value = value_to_change._replace(
             value=action_to_perform.function(value_to_change).value,
@@ -119,12 +124,17 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
     if action_number < len(value.actions_sequence):  # Not the last action, need to repeat all following
         actions_to_repeat = [a for a in value.actions_sequence[action_number + 1:]]
         for a in actions_to_repeat:
-            rolled_back_value = a.change_value(value=rolled_back_value)
+            rolled_back_value = a.change_value(value=rolled_back_value, rollback_function=action.function)
 
     return rolled_back_value
 
 
-def apply_effect(*, effect: Effect, value: Value, short_description: str = '', full_description: str = '') -> Value:
+def apply_effect(*,
+                 effect: Effect,
+                 value: Value,
+                 rollback_function: typing.Callable,
+                 short_description: str = '',
+                 full_description: str = '') -> Value:
     if not short_description:
         if effect.short_description:
             short_description = effect.short_description
@@ -145,12 +155,21 @@ def apply_effect(*, effect: Effect, value: Value, short_description: str = '', f
     value = value.append_action_to_sequence(application_action)
     effect_action = effect_action._replace(short_description=short_description, full_description=full_description)
     effect = effect._replace(action=effect_action)
-    value = effect.action.change_value(value=value)
+    value = effect.action.change_value(value=value, rollback_function=rollback_function)
     return value
 
 
-# def unapply_effect(*, effect: Effect, value: Value):
-#     effect_action = effect.action
+def unapply_effect(*, effect: Effect, value: Value, rollback_function: typing.Callable) -> Value:
+    remove_effect_action = Action(
+            name=f'Effect "{effect.name}" removing',
+            previous_value=value,
+            function=effect.action.rollback_function,
+            short_description=f'Removing effect {effect.name} from {value.name}',
+            full_description=f'Removing effect {effect.name} from {value.name}')
+    rollback_action = Action(function=rollback_function)
+    value = value.append_action_to_sequence(remove_effect_action)
+    value = value.change(action_to_perform=rollback_action)
+    return value
 
 
 if __name__ == '__main__':
