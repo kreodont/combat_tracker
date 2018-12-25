@@ -42,8 +42,22 @@ class Action(typing.NamedTuple):
     next_action: typing.Optional['Action'] = None
     previous_action: typing.Optional['Action'] = None
 
-    def change_value(self, value: Value, rollback_function=None):
+    def change_value(self, *, value: Value, rollback_function=None):
         return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
+
+
+class Effect(typing.NamedTuple):
+    name: str
+    action: Action
+    id: str = uuid.uuid4()
+    short_description: str = f'Effect {id} not applied to any value'
+    full_description: str = short_description
+    duration: str = ''
+    values: typing.List[Value] = []
+
+    @property
+    def applied(self):
+        return bool(self.values)
 
 
 def change_value(*,
@@ -89,9 +103,28 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
     if action_number < len(value.actions_sequence):  # Not the last action, need to repeat all following
         actions_to_repeat = [a for a in value.actions_sequence[action_number + 1:]]
         for a in actions_to_repeat:
-            rolled_back_value = a.change_value(rolled_back_value)
+            rolled_back_value = a.change_value(value=rolled_back_value)
 
     return rolled_back_value
+
+
+def apply_effect(*, effect: Effect, value: Value, short_description: str = '', full_description: str = '') -> Value:
+    if not short_description:
+        short_description = f'Effect "{effect.name}" was applied to value "{value.name}"'
+    if not full_description:
+        full_description = short_description
+    effect_action = effect.action
+    application_action = Action(
+            name='Effect application',
+            previous_value=value,
+            short_description=short_description,
+            full_description=full_description)
+
+    value = value._replace(actions_sequence=value.actions_sequence + [application_action])
+    effect_action = effect_action._replace(short_description=short_description, full_description=full_description)
+    effect = effect._replace(action=effect_action)
+    value = effect.action.change_value(value=value)
+    return value
 
 
 if __name__ == '__main__':
