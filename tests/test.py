@@ -286,3 +286,9 @@ def test_effect_unapply():
     value = unapply_effect(effect=effect, value=value, rollback_function=rollback_function)
     assert value.value == 10
     assert len(value.actions_sequence) == 4  # Apply effect, change value, unapply effect, change value back
+
+
+def test_effect_unapply_with_previous_value_restoration():
+    def set_200(v: Value):
+        v = v._replace(value=v.value + 10)
+        return v
