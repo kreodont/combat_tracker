@@ -32,7 +32,6 @@ class Action(typing.NamedTuple):
     visibility_level: str = 'visible'
     next_action: typing.Optional['Action'] = None
     previous_action: typing.Optional['Action'] = None
-    rolled_back: bool = False
 
     def change_value(self, value: Value, rollback_function=None):
         return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
@@ -77,12 +76,13 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
 
     action = matching_actions[0]
     action_number = value.actions_sequence.index(action)
+    rolled_back_value = action.rollback(value)
     if action_number < len(value.actions_sequence):  # Not the last action, need to repeat all following
-        actions_to_repeat = [a for a in value.actions_sequence[action_number:] if not a.rolled_back]
-        print(actions_to_repeat)
-        pass
+        actions_to_repeat = [a for a in value.actions_sequence[action_number + 1:]]
+        for a in actions_to_repeat:
+            rolled_back_value = a.change_value(rolled_back_value)
 
-    return action.rollback(value)
+    return rolled_back_value
 
 
 if __name__ == '__main__':

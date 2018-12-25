@@ -167,5 +167,7 @@ def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_
     assert v_2.value == 3
     final_value = Action(function=increment, id='third_increment').change_value(v_2)
     assert final_value.value == 4
+    assert len(final_value.actions_sequence) == 3
     final_value = roll_back_action(value=final_value, action_id='second_increment')
     assert final_value.value == 3
+    assert len(final_value.actions_sequence) == 2
