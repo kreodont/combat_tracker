@@ -7,7 +7,6 @@ class Value(typing.NamedTuple):
     name: str
     id: str = uuid.uuid4()
     value: typing.Any = 0
-    last_action: typing.Optional['Action'] = None
     actions_sequence: typing.List['Action'] = []
     subscribers: list = []
     short_description: str = f'{value}'
@@ -18,6 +17,9 @@ class Value(typing.NamedTuple):
     def __repr__(self):
         return f'{self.name}: {self.value}'
 
+    def append_action_to_sequence(self, a: 'Action') -> 'Value':
+        return self._replace(actions_sequence=self.actions_sequence + [a, ])
+
     def roll_back_action(self, action_id: str) -> 'Value':
         return roll_back_action(value=self, action_id=action_id)
 
@@ -26,6 +28,13 @@ class Value(typing.NamedTuple):
                 value_to_change=self,
                 action_to_perform=action_to_perform,
                 rollback_function=rollback_function)
+
+    @property
+    def last_action(self):
+        if not self.actions_sequence:
+            return None
+        else:
+            return self.actions_sequence[-1]
 
 
 class Action(typing.NamedTuple):
@@ -39,8 +48,6 @@ class Action(typing.NamedTuple):
     short_description: str = f'Changing value from {previous_value} to {actual_value}'
     full_description: str = short_description
     visibility_level: str = 'visible'
-    next_action: typing.Optional['Action'] = None
-    previous_action: typing.Optional['Action'] = None
 
     def change_value(self, *, value: Value, rollback_function=None):
         return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
@@ -84,9 +91,14 @@ def change_value(*,
             previous_value=value_to_change,
             actual_value=new_value,
             rollback_function=rollback_function)
-    new_value = new_value._replace(
-            actions_sequence=value_to_change.actions_sequence + [fulfilled_action],
-            last_action=fulfilled_action)
+
+    new_value = new_value.append_action_to_sequence(fulfilled_action)
+    # if len(new_value.actions_sequence) > 1:  # if there is going to be 2 or more actions, we should tie them
+    #     actions_sequence = new_value.actions_sequence
+    #     actions_sequence[-2] = actions_sequence[-2]._replace(next_action=fulfilled_action)
+    #     # actions_sequence[-1] = actions_sequence[-1]._replace(previous_action=value_to_change.last_action)
+    #     new_value = new_value._replace(actions_sequence=actions_sequence)
+
     return new_value
 
 
@@ -130,7 +142,7 @@ def apply_effect(*, effect: Effect, value: Value, short_description: str = '', f
             short_description=short_description,
             full_description=full_description)
 
-    value = value._replace(actions_sequence=value.actions_sequence + [application_action])
+    value = value.append_action_to_sequence(application_action)
     effect_action = effect_action._replace(short_description=short_description, full_description=full_description)
     effect = effect._replace(action=effect_action)
     value = effect.action.change_value(value=value)

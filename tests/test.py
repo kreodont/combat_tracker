@@ -56,6 +56,8 @@ def test_change_from_action():
     action = Action(function=change_to_100)
     value = action.change_value(value=value)
     assert value.value == 100
+    assert value.last_action != action  # they should not be so since we're adding fulfilled action
+    assert value.last_action.id == action.id  # but ID should be the same
 
 
 def test_that_previous_value_is_still_accessible():
@@ -241,8 +243,6 @@ def test_simple_effect_apply():
     value = apply_effect(effect=effect, value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
-    assert value.actions_sequence[0].short_description == 'Effect "Increment by 10" was applied to value "some"'
-    assert value.last_action.short_description == 'Effect "Increment by 10" was applied to value "some"'
 
 
 def test_effect_application_from_effect_object():
@@ -256,5 +256,3 @@ def test_effect_application_from_effect_object():
     value = effect.apply(value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
-    assert value.actions_sequence[0].short_description == 'Значение увеличивается на 10'
-    assert value.last_action.short_description == 'Значение увеличивается на 10'
