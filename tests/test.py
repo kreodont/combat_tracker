@@ -243,3 +243,18 @@ def test_simple_effect_apply():
     assert len(value.actions_sequence) == 2
     assert value.actions_sequence[0].short_description == 'Effect "Increment by 10" was applied to value "some"'
     assert value.last_action.short_description == 'Effect "Increment by 10" was applied to value "some"'
+
+
+def test_effect_application_from_effect_object():
+    def increment_by_10(v: Value) -> Value:
+        v = v._replace(value=v.value + 10)
+        return v
+
+    value = Value(value=10, name='some')
+    effect_action = Action(function=increment_by_10)
+    effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
+    value = effect.apply(value=value)
+    assert value.value == 20
+    assert len(value.actions_sequence) == 2
+    assert value.actions_sequence[0].short_description == 'Значение увеличивается на 10'
+    assert value.last_action.short_description == 'Значение увеличивается на 10'

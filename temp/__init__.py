@@ -50,7 +50,7 @@ class Effect(typing.NamedTuple):
     name: str
     action: Action
     id: str = uuid.uuid4()
-    short_description: str = f'Effect {id} not applied to any value'
+    short_description: str = ''
     full_description: str = short_description
     duration: str = ''
     values: typing.List[Value] = []
@@ -58,6 +58,10 @@ class Effect(typing.NamedTuple):
     @property
     def applied(self):
         return bool(self.values)
+
+    def apply(self, *, value: Value, short_description: str = '', full_description: str = '') -> Value:
+        return apply_effect(
+                effect=self, value=value, short_description=short_description, full_description=full_description)
 
 
 def change_value(*,
@@ -110,9 +114,15 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
 
 def apply_effect(*, effect: Effect, value: Value, short_description: str = '', full_description: str = '') -> Value:
     if not short_description:
-        short_description = f'Effect "{effect.name}" was applied to value "{value.name}"'
+        if effect.short_description:
+            short_description = effect.short_description
+        else:
+            short_description = f'Effect "{effect.name}" was applied to value "{value.name}"'
     if not full_description:
-        full_description = short_description
+        if effect.full_description:
+            full_description = effect.full_description
+        else:
+            full_description = short_description
     effect_action = effect.action
     application_action = Action(
             name='Effect application',
