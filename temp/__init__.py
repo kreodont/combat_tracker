@@ -35,7 +35,7 @@ class Action(typing.NamedTuple):
     previous_value: typing.Optional[Value] = None
     actual_value: typing.Optional[Value] = None
     function: typing.Callable[..., Value] = None
-    rollback: typing.Callable[..., Value] = None
+    rollback_function: typing.Callable[..., Value] = None
     short_description: str = f'Changing value from {previous_value} to {actual_value}'
     full_description: str = short_description
     visibility_level: str = 'visible'
@@ -83,7 +83,7 @@ def change_value(*,
     fulfilled_action = action_to_perform._replace(
             previous_value=value_to_change,
             actual_value=new_value,
-            rollback=rollback_function)
+            rollback_function=rollback_function)
     new_value = new_value._replace(
             actions_sequence=value_to_change.actions_sequence + [fulfilled_action],
             last_action=fulfilled_action)
@@ -95,7 +95,7 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
         return value
 
     if action_id is None:
-        return value.last_action.rollback(value)
+        return value.last_action.rollback_function(value)
 
     matching_actions = [a for a in value.actions_sequence if a.id == action_id]
     if not matching_actions:
@@ -103,7 +103,7 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
 
     action = matching_actions[0]
     action_number = value.actions_sequence.index(action)
-    rolled_back_value = action.rollback(value)
+    rolled_back_value = action.rollback_function(value)
     if action_number < len(value.actions_sequence):  # Not the last action, need to repeat all following
         actions_to_repeat = [a for a in value.actions_sequence[action_number + 1:]]
         for a in actions_to_repeat:
@@ -135,6 +135,10 @@ def apply_effect(*, effect: Effect, value: Value, short_description: str = '', f
     effect = effect._replace(action=effect_action)
     value = effect.action.change_value(value=value)
     return value
+
+
+# def unapply_effect(*, effect: Effect, value: Value):
+#     effect_action = effect.action
 
 
 if __name__ == '__main__':

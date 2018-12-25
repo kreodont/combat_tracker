@@ -78,7 +78,7 @@ def test_change_and_then_default_rollback():
     action = Action(function=changing_function)
     value = action.change_value(value=value)
     assert value.value == 100
-    rollback_function = value.actions_sequence[-1].rollback
+    rollback_function = value.actions_sequence[-1].rollback_function
     action = Action(function=rollback_function)
     previous_value = action.change_value(value=value)
     assert previous_value.value == 1
@@ -96,7 +96,7 @@ def test_non_default_rollback():
     value = Value(name='some', value=14)
     new_value = Action(function=changing_function).change_value(value=value, rollback_function=rollback_function)
     assert new_value.value == 100
-    rolled_back_value = Action(function=new_value.last_action.rollback).change_value(value=new_value)
+    rolled_back_value = Action(function=new_value.last_action.rollback_function).change_value(value=new_value)
     assert rolled_back_value.value == 105
 
 
