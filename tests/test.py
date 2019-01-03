@@ -250,7 +250,7 @@ def test_simple_effect_apply():
     value = Value(value=10, name='some')
     effect_action = Action(function=increment_by_10)
     effect = Effect(name='Increment by 10', action=effect_action)
-    value = apply_effect(effect=effect, value=value, rollback_function=lambda x: x)
+    value = apply_effect(effect=effect, value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
 
@@ -263,7 +263,7 @@ def test_effect_application_from_effect_object():
     value = Value(value=10, name='some')
     effect_action = Action(function=increment_by_10)
     effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
-    value = effect.apply(value=value, rollback_function=lambda x: x)
+    value = effect.apply(value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
 
@@ -280,7 +280,7 @@ def test_effect_unapply():
     value = Value(value=10, name='some')
     effect_action = Action(function=increment_by_10)
     effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
-    value = effect.apply(value=value, rollback_function=rollback_function)
+    value = effect.apply(value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
     value = unapply_effect(effect=effect, value=value, rollback_function=rollback_function)
@@ -288,7 +288,16 @@ def test_effect_unapply():
     assert len(value.actions_sequence) == 4  # Apply effect, change value, unapply effect, change value back
 
 
-def test_effect_unapply_with_previous_value_restoration():
-    def set_200(v: Value):
-        v = v._replace(value=v.value + 10)
+def test_effect_unapplication_from_effect():
+    def set_200(v: Value) -> Value:
+        v = v._replace(value=200)
         return v
+
+    value = Value(value=10, name='some')
+    effect_action = Action(function=set_200)
+    effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
+    value = effect.apply(value=value)
+    assert value.value == 200
+    rollback_function = value.last_action.rollback_function
+    value = effect.unapply(value=value, rollback_function=rollback_function)
+    assert value.value == 10

@@ -23,7 +23,7 @@ class Value(typing.NamedTuple):
     def roll_back_action(self, action_id: str) -> 'Value':
         return roll_back_action(value=self, action_id=action_id)
 
-    def change(self, *, action_to_perform: 'Action', rollback_function: typing.Callable=None):
+    def change(self, *, action_to_perform: 'Action', rollback_function: typing.Callable = None):
         return change_value(
                 value_to_change=self,
                 action_to_perform=action_to_perform,
@@ -66,14 +66,31 @@ class Effect(typing.NamedTuple):
     def applied(self):
         return bool(self.values)
 
-    def apply(self, *, value: Value, rollback_function: typing.Callable,
-              short_description: str = '', full_description: str = '') -> Value:
+    def apply(self,
+              *,
+              value: Value,
+              # rollback_function: typing.Optional[typing.Callable],
+              short_description: str = '',
+              full_description: str = '',
+              ) -> Value:
         return apply_effect(
                 effect=self,
                 value=value,
                 short_description=short_description,
                 full_description=full_description,
-                rollback_function=rollback_function)
+                # rollback_function=rollback_function,
+        )
+
+    def unapply(self,
+                *,
+                value: Value,
+                rollback_function: typing.Callable,
+                ) -> Value:
+        return unapply_effect(
+                effect=self,
+                value=value,
+                rollback_function=rollback_function,
+        )
 
 
 def change_value(*,
@@ -81,16 +98,18 @@ def change_value(*,
                  action_to_perform: Action,
                  rollback_function: typing.Optional[typing.Callable],
                  ) -> Value:
-    new_value = value_to_change._replace(
-            value=action_to_perform.function(value_to_change).value,
-    )
+    # Getting new value by apllying Actions function to the old value
+    new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
+
+    # If rollback function is not defined, it will be default: restore the previous state
     if rollback_function is None:
-        def defaul_rollback(v: Value = None) -> Value:
+        def default_rollback(v: Value = None) -> Value:
             if not v:
                 pass
             old_value = value_to_change
             return old_value
-        rollback_function = defaul_rollback
+
+        rollback_function = default_rollback
 
     fulfilled_action = action_to_perform._replace(
             previous_value=value_to_change,
@@ -98,12 +117,6 @@ def change_value(*,
             rollback_function=rollback_function)
 
     new_value = new_value.append_action_to_sequence(fulfilled_action)
-    # if len(new_value.actions_sequence) > 1:  # if there is going to be 2 or more actions, we should tie them
-    #     actions_sequence = new_value.actions_sequence
-    #     actions_sequence[-2] = actions_sequence[-2]._replace(next_action=fulfilled_action)
-    #     # actions_sequence[-1] = actions_sequence[-1]._replace(previous_action=value_to_change.last_action)
-    #     new_value = new_value._replace(actions_sequence=actions_sequence)
-
     return new_value
 
 
@@ -132,36 +145,39 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
 def apply_effect(*,
                  effect: Effect,
                  value: Value,
-                 rollback_function: typing.Callable,
+                 # rollback_function: typing.Callable,
                  short_description: str = '',
                  full_description: str = '') -> Value:
     if not short_description:
         if effect.short_description:
             short_description = effect.short_description
         else:
-            short_description = f'Effect "{effect.name}" was applied to value "{value.name}"'
+            short_description = f'Value {value.name} changed due to effect {effect.name} application'
     if not full_description:
         if effect.full_description:
             full_description = effect.full_description
         else:
             full_description = short_description
+    # Effect application consists of 2 actions: effect applied to value and value is changed
     effect_action = effect.action
+    effect_action = effect_action._replace(short_description=short_description, full_description=full_description)
+    effect = effect._replace(action=effect_action)
+
     application_action = Action(
-            name='Effect application',
+            name=f'Effect {effect.name} was applied to value {value.name} (no value changing yet)',
             previous_value=value,
             short_description=short_description,
             full_description=full_description)
 
     value = value.append_action_to_sequence(application_action)
-    effect_action = effect_action._replace(short_description=short_description, full_description=full_description)
-    effect = effect._replace(action=effect_action)
-    value = effect.action.change_value(value=value, rollback_function=rollback_function)
+    value = effect.action.change_value(value=value, rollback_function=None)
+
     return value
 
 
 def unapply_effect(*, effect: Effect, value: Value, rollback_function: typing.Callable) -> Value:
     remove_effect_action = Action(
-            name=f'Effect "{effect.name}" removing',
+            name=f'Effect "{effect.name}" removing from value "{value.name}"',
             previous_value=value,
             function=effect.action.rollback_function,
             short_description=f'Removing effect {effect.name} from {value.name}',
