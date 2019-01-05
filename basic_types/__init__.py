@@ -44,7 +44,7 @@ class Action(typing.NamedTuple):
     previous_value: typing.Optional[Value] = None
     actual_value: typing.Optional[Value] = None
     function: typing.Callable[..., Value] = None
-    rollback_function: typing.Callable[..., Value] = None
+    rollback_function: typing.Callable[..., typing.Any] = None
     short_description: str = f'Changing value from {previous_value} to {actual_value}'
     full_description: str = short_description
     visibility_level: str = 'visible'
@@ -95,14 +95,22 @@ class Effect(typing.NamedTuple):
 
 
 class Timer(typing.NamedTuple):
-    name = ''
-    ticks: typing.List[float] = []
-    actions_list: typing.List[Action] = []
-    subscribers: typing.Dict[Effect, float] = {}
+    name: str
+    ticks: typing.List[float]
+    actions_list: typing.List[Action]
+    subscribers: typing.Dict[Effect, float]
 
     @property
     def seconds_passed(self):
         return sum(self.ticks) if self.ticks else 0
+
+    def tick(self, *, seconds) -> 'Timer':
+        return timer_tick(timer=self, seconds=seconds)
+
+    @staticmethod
+    def untick(*, action: Action):
+        return timer_untick(action=action)
+    # def rollback_tick(self, *, action_to_rollback) -> Timer:
 
 
 def change_value(*,
@@ -130,6 +138,30 @@ def change_value(*,
 
     new_value = new_value.append_action_to_sequence(fulfilled_action)
     return new_value
+
+
+def timer_tick(*, timer: Timer, seconds: float) -> Timer:
+    def rollback_function():
+        timer.ticks.remove(seconds)
+        return timer
+
+    action_id = str(uuid.uuid4())
+
+    action_tick = Action(
+            id=action_id,
+            name=f'Timer "{timer.name}" changed by {seconds} seconds',
+            rollback_function=rollback_function,
+            time=datetime.datetime.now())
+
+    timer.actions_list.append(action_tick)
+    timer.ticks.append(seconds)
+    return timer
+
+
+def timer_untick(*, action: Action) -> Timer:
+    timer = action.rollback_function()
+    timer.actions_list.remove(action)
+    return timer
 
 
 def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) -> Value:

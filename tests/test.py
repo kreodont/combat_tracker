@@ -327,16 +327,34 @@ def test_that_default_effect_duration_is_infinite():
 
 
 def test_that_default_timer_time_is_zero():
-    timer = Timer()
+    timer = Timer(name='default', actions_list=[], subscribers={}, ticks=[])
     assert timer.seconds_passed == 0
 
 
-def test_that_timer_tick_finishes_effect():
-    def set_20(v: Value) -> Value:
-        v = v._replace(value=20)
-        return v
+def test_that_timer_tick_changes_timers_ticks():
+    timer = Timer(ticks=[20], name='default', actions_list=[], subscribers={})
+    assert timer.seconds_passed == 20
+    timer = timer.tick(seconds=50)
+    assert timer.seconds_passed == 70
+    assert len(timer.actions_list) == 1
 
-    action_make_20 = Action(id='4', function=set_20)
-    effect = Effect(name='make 20', action=action_make_20, id='effect_0', duration_in_seconds=20)
-    value = Value(value=10, name='1', id='10')
-    assert True
+
+def test_that_timer_tick_can_be_undone():
+    timer = Timer(name='My timer', actions_list=[], subscribers={}, ticks=[])
+    assert timer.seconds_passed == 0
+    timer = timer.tick(seconds=5)
+    assert timer.seconds_passed == 5
+    assert len(timer.actions_list) == 1
+    timer = timer.untick(action=timer.actions_list[0])
+    assert timer.seconds_passed == 0
+    assert timer.actions_list == []
+
+# def test_that_timer_tick_finishes_effect():
+#     def set_20(v: Value) -> Value:
+#         v = v._replace(value=20)
+#         return v
+#
+#     action_make_20 = Action(id='4', function=set_20)
+#     effect = Effect(name='make 20', action=action_make_20, id='effect_0', duration_in_seconds=20)
+#     value = Value(value=10, name='1', id='10')
+#     assert True
