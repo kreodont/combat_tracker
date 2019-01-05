@@ -1,4 +1,4 @@
-from temp import Action, Value, Effect, change_value, roll_back_action, apply_effect, unapply_effect
+from basic_types import Action, Value, Effect, change_value, roll_back_action, apply_effect, unapply_effect, Timer
 
 
 def test_create_empty_action():
@@ -12,7 +12,7 @@ def test_create_empty_value():
 
 
 def test_change_integer_value_from_0_to_10():
-    value = Value(name='test_value', value=0)
+    value = Value(name='test_value', value=0, id='1')
 
     def f(v: Value) -> Value:
         v = v._replace(value=10)
@@ -25,7 +25,7 @@ def test_change_integer_value_from_0_to_10():
 
 
 def test_series_of_changes():
-    value = Value(name='test_value', value=0)
+    value = Value(name='test_value', value=0, id='1')
 
     def change_to_11(v: Value) -> Value:
         v = v._replace(value=11)
@@ -35,13 +35,13 @@ def test_series_of_changes():
         v = v._replace(value=12)
         return v
 
-    action = Action(function=change_to_11)
+    action = Action(function=change_to_11, id='1')
     new_value = change_value(value_to_change=value, action_to_perform=action, rollback_function=lambda x: x)
 
     assert new_value.value == 11
     assert len(new_value.actions_sequence) == 1
 
-    new_action = Action(function=change_to_12)
+    new_action = Action(function=change_to_12, id='1')
     another_value = change_value(value_to_change=new_value, action_to_perform=new_action, rollback_function=lambda x: x)
     assert another_value.value == 12
     assert len(another_value.actions_sequence) == 2
@@ -52,8 +52,8 @@ def test_change_from_action():
         v = v._replace(value=100)
         return v
 
-    value = Value(name='some')
-    action = Action(function=change_to_100)
+    value = Value(name='some', id='1')
+    action = Action(function=change_to_100, id='1')
     value = action.change_value(value=value, rollback_function=lambda x: x)
     assert value.value == 100
     assert value.last_action != action  # they should not be so since we're adding fulfilled action
@@ -64,8 +64,8 @@ def test_that_previous_value_is_still_accessible():
     def change_to_55(v: Value) -> Value:
         v = v._replace(value=55)
         return v
-    value = Value(name='some', value=4)
-    value = Action(function=change_to_55).change_value(value=value, rollback_function=lambda x: x)
+    value = Value(name='some', value=4, id='1')
+    value = Action(function=change_to_55, id='1').change_value(value=value, rollback_function=lambda x: x)
     assert value.value == 55
     assert value.actions_sequence[-1].previous_value.value == 4
 
@@ -76,12 +76,12 @@ def test_change_and_then_default_rollback():
         v = v._replace(value=100)
         return v
 
-    value = Value(name='some', value=1)
-    action = Action(function=changing_function)
+    value = Value(name='some', value=1, id='1')
+    action = Action(function=changing_function, id='1')
     value = action.change_value(value=value, rollback_function=None)
     assert value.value == 100
     rollback_function = value.actions_sequence[-1].rollback_function
-    action = Action(function=rollback_function)
+    action = Action(function=rollback_function, id='12')
     previous_value = action.change_value(value=value, rollback_function=lambda x: x)
     assert previous_value.value == 1
 
@@ -95,11 +95,12 @@ def test_non_default_rollback():
         v = v._replace(value=v.value + 5)
         return v
 
-    value = Value(name='some', value=14)
-    new_value = Action(function=changing_function).change_value(value=value, rollback_function=rollback_function)
+    value = Value(name='some', value=14, id='1')
+    new_value = Action(function=changing_function, id='1').change_value(
+            value=value, rollback_function=rollback_function)
     assert new_value.value == 100
     rolled_back_value = Action(
-            function=new_value.last_action.rollback_function).change_value(
+            function=new_value.last_action.rollback_function, id='1').change_value(
             value=new_value, rollback_function=rollback_function)
     assert rolled_back_value.value == 105
 
@@ -109,16 +110,16 @@ def test_multiple_action_aplying():
         v = v._replace(value=v.value + 1)
         return v
 
-    value = Value(name='some', value=0)
-    value = Action(function=changing_function).change_value(value=value, rollback_function=lambda x: x)
-    value = Action(function=changing_function).change_value(value=value, rollback_function=lambda x: x)
-    value = Action(function=changing_function).change_value(value=value, rollback_function=lambda x: x)
+    value = Value(name='some', value=0, id='1')
+    value = Action(function=changing_function, id='1').change_value(value=value, rollback_function=lambda x: x)
+    value = Action(function=changing_function, id='2').change_value(value=value, rollback_function=lambda x: x)
+    value = Action(function=changing_function, id='3').change_value(value=value, rollback_function=lambda x: x)
     assert value.value == 3
     assert len(value.actions_sequence) == 3
 
 
 def test_that_rollback_returns_the_same_object_if_no_actions_were_performed_yet():
-    value = Value(name='some', value=15)
+    value = Value(name='some', value=15, id='1')
     new_value = roll_back_action(value=value)
     assert new_value == value
 
@@ -128,8 +129,8 @@ def test_that_rollback_works_with_last_action():
         v = v._replace(value='Changed Value')
         return v
 
-    initial_value = Value(name='some', value='Initial Value')
-    changed_value = Action(function=changing_function).change_value(value=initial_value, rollback_function=None)
+    initial_value = Value(name='some', value='Initial Value', id='1')
+    changed_value = Action(function=changing_function, id='1').change_value(value=initial_value, rollback_function=None)
     assert changed_value.value == 'Changed Value'
     previous_value = roll_back_action(value=changed_value)
     assert previous_value == initial_value
@@ -140,7 +141,7 @@ def test_that_rollback_returns_the_same_object_if_wrong_action_id_specified():
         v = v._replace(value=14)
         return v
 
-    initial_value = Value(name='Some', value=13)
+    initial_value = Value(name='Some', value=13, id='1')
     changed_value = Action(function=set_14, id='123').change_value(value=initial_value, rollback_function=lambda x: x)
     assert changed_value.value == 14
     rolled_back_value = roll_back_action(value=changed_value, action_id='12')
@@ -152,7 +153,7 @@ def test_explicitly_specified_rollback():
         v = v._replace(value=14)
         return v
 
-    initial_value = Value(name='Some', value=13)
+    initial_value = Value(name='Some', value=13, id='1')
     changed_value = Action(function=set_14, id='123').change_value(value=initial_value, rollback_function=None)
     assert changed_value.value == 14
     rolled_back_value = roll_back_action(value=changed_value, action_id='123')
@@ -164,7 +165,7 @@ def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_
         v = v._replace(value=v.value + 1)
         return v
 
-    initial_value = Value(name='some', value=1)
+    initial_value = Value(name='some', value=1, id='1')
     v_1 = Action(function=increment, id='first_increment').change_value(
             value=initial_value, rollback_function=lambda x: x)
     assert v_1.value == 2
@@ -184,7 +185,7 @@ def test_several_roll_backs():
         v = v._replace(value=v.value + 10)
         return v
 
-    initial_value = Value(name='some', value=100)
+    initial_value = Value(name='some', value=100, id='1')
     v_1 = Action(function=increment_by_10, id='first_increment').change_value(
             value=initial_value, rollback_function=None)
     assert v_1.value == 110
@@ -206,7 +207,7 @@ def test_rollback_from_value_object():
         v = v._replace(value=v.value + 10)
         return v
 
-    initial_value = Value(name='some', value=100)
+    initial_value = Value(name='some', value=100, id='1')
     v_1 = Action(function=increment_by_10, id='first_increment').change_value(
             value=initial_value, rollback_function=None)
     assert v_1.value == 110
@@ -228,18 +229,13 @@ def test_change_from_value_object():
         v = v._replace(value=v.value + 10)
         return v
 
-    value = Value(name='some', value=-5)
-    value = value.change(action_to_perform=Action(function=increment_by_10))
-    value = value.change(action_to_perform=Action(function=increment_by_10))
-    value = value.change(action_to_perform=Action(function=increment_by_10))
-    value = value.change(action_to_perform=Action(function=increment_by_10))
+    value = Value(name='some', value=-5, id='1')
+    value = value.change(action_to_perform=Action(function=increment_by_10, id='1'))
+    value = value.change(action_to_perform=Action(function=increment_by_10, id='1'))
+    value = value.change(action_to_perform=Action(function=increment_by_10, id='1'))
+    value = value.change(action_to_perform=Action(function=increment_by_10, id='1'))
     assert value.value == 35
     assert len(value.actions_sequence) == 4
-
-
-def test_empty_effect_applied():
-    effect = Effect(name='test effect', action=Action(function=lambda x: x))
-    assert effect.applied is False
 
 
 def test_simple_effect_apply():
@@ -247,12 +243,13 @@ def test_simple_effect_apply():
         v = v._replace(value=v.value + 10)
         return v
 
-    value = Value(value=10, name='some')
-    effect_action = Action(function=increment_by_10)
-    effect = Effect(name='Increment by 10', action=effect_action)
+    value = Value(value=10, name='some', id='1')
+    effect_action = Action(function=increment_by_10, id='12')
+    effect = Effect(name='Increment by 10', action=effect_action, id='1')
     value = apply_effect(effect=effect, value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
+    assert value.actions_sequence[0].id != value.actions_sequence[1].id
 
 
 def test_effect_application_from_effect_object():
@@ -260,9 +257,10 @@ def test_effect_application_from_effect_object():
         v = v._replace(value=v.value + 10)
         return v
 
-    value = Value(value=10, name='some')
-    effect_action = Action(function=increment_by_10)
-    effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
+    value = Value(value=10, name='some', id='1')
+    effect_action = Action(function=increment_by_10, id='3')
+    effect = Effect(
+            name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
     value = effect.apply(value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
@@ -277,9 +275,10 @@ def test_effect_unapply():
         v = v._replace(value=v.value - 10)
         return v
 
-    value = Value(value=10, name='some')
-    effect_action = Action(function=increment_by_10)
-    effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
+    value = Value(value=10, name='some', id='1')
+    effect_action = Action(function=increment_by_10, id='2')
+    effect = Effect(
+            name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
     value = effect.apply(value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
@@ -293,11 +292,51 @@ def test_effect_unapplication_from_effect():
         v = v._replace(value=200)
         return v
 
-    value = Value(value=10, name='some')
-    effect_action = Action(function=set_200)
-    effect = Effect(name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10')
+    value = Value(value=10, name='some', id='1')
+    effect_action = Action(function=set_200, id='4')
+    effect = Effect(
+            name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
     value = effect.apply(value=value)
     assert value.value == 200
     rollback_function = value.last_action.rollback_function
     value = effect.unapply(value=value, rollback_function=rollback_function)
     assert value.value == 10
+
+
+def test_that_2_consequence_actions_have_different_id():
+    action1 = Action(id='1')
+    action2 = Action(id='2')
+    assert action1.id != action2.id
+
+
+def test_that_2_different_values_always_have_different_id():
+    value1 = Value(name='value1', id='1')
+    value2 = Value(name='value2', id='3')
+    assert value1.id != value2.id
+
+
+def test_that_2_different_effects_always_have_different_id():
+    effect1 = Effect(name='effect1', action=Action(id='1'), id='1')
+    effect2 = Effect(name='effect1', action=Action(id='1'), id='')
+    assert effect1.id != effect2.id
+
+
+def test_that_default_effect_duration_is_infinite():
+    effect = Effect(name='effect1', action=Action(id='1'), id='1')
+    assert effect.duration_in_seconds > 9999999999999999999  # 317 million years
+
+
+def test_that_default_timer_time_is_zero():
+    timer = Timer()
+    assert timer.seconds_passed == 0
+
+
+def test_that_timer_tick_finishes_effect():
+    def set_20(v: Value) -> Value:
+        v = v._replace(value=20)
+        return v
+
+    action_make_20 = Action(id='4', function=set_20)
+    effect = Effect(name='make 20', action=action_make_20, id='effect_0', duration_in_seconds=20)
+    value = Value(value=10, name='1', id='10')
+    assert True

@@ -5,7 +5,7 @@ import uuid
 
 class Value(typing.NamedTuple):
     name: str
-    id: str = uuid.uuid4()
+    id: str
     value: typing.Any = 0
     actions_sequence: typing.List['Action'] = []
     subscribers: list = []
@@ -38,7 +38,7 @@ class Value(typing.NamedTuple):
 
 
 class Action(typing.NamedTuple):
-    id: str = uuid.uuid4()
+    id: str
     time: datetime.datetime = datetime.datetime.now()
     name: str = f'Action {id} at {time}'
     previous_value: typing.Optional[Value] = None
@@ -56,15 +56,16 @@ class Action(typing.NamedTuple):
 class Effect(typing.NamedTuple):
     name: str
     action: Action
-    id: str = uuid.uuid4()
+    id: str
+    finished: bool = False
+    duration_in_seconds: float = float("inf")
     short_description: str = ''
     full_description: str = short_description
-    duration: str = ''
-    values: typing.List[Value] = []
+    # values: typing.List[Value] = []
 
-    @property
-    def applied(self):
-        return bool(self.values)
+    # @property
+    # def applied(self):
+    #     return bool(self.values)
 
     def apply(self,
               *,
@@ -91,6 +92,17 @@ class Effect(typing.NamedTuple):
                 value=value,
                 rollback_function=rollback_function,
         )
+
+
+class Timer(typing.NamedTuple):
+    name = ''
+    ticks: typing.List[float] = []
+    actions_list: typing.List[Action] = []
+    subscribers: typing.Dict[Effect, float] = {}
+
+    @property
+    def seconds_passed(self):
+        return sum(self.ticks) if self.ticks else 0
 
 
 def change_value(*,
@@ -145,7 +157,6 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
 def apply_effect(*,
                  effect: Effect,
                  value: Value,
-                 # rollback_function: typing.Callable,
                  short_description: str = '',
                  full_description: str = '') -> Value:
     if not short_description:
@@ -167,7 +178,7 @@ def apply_effect(*,
             name=f'Effect {effect.name} was applied to value {value.name} (no value changing yet)',
             previous_value=value,
             short_description=short_description,
-            full_description=full_description)
+            full_description=full_description, id=str(uuid.uuid4()))
 
     value = value.append_action_to_sequence(application_action)
     value = effect.action.change_value(value=value, rollback_function=None)
@@ -181,8 +192,8 @@ def unapply_effect(*, effect: Effect, value: Value, rollback_function: typing.Ca
             previous_value=value,
             function=effect.action.rollback_function,
             short_description=f'Removing effect {effect.name} from {value.name}',
-            full_description=f'Removing effect {effect.name} from {value.name}')
-    rollback_action = Action(function=rollback_function)
+            full_description=f'Removing effect {effect.name} from {value.name}', id=str(uuid.uuid4()))
+    rollback_action = Action(function=rollback_function, id=str(uuid.uuid4()))
     value = value.append_action_to_sequence(remove_effect_action)
     value = value.change(action_to_perform=rollback_action)
     return value
