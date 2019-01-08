@@ -20,15 +20,6 @@ class Value(typing.NamedTuple):
     def append_action_to_sequence(self, a: 'Action') -> 'Value':
         return self._replace(actions_sequence=self.actions_sequence + [a, ])
 
-    def roll_back_action(self, action_id: str) -> 'Value':
-        return roll_back_action(value=self, action_id=action_id)
-
-    def change(self, *, action_to_perform: 'Action', rollback_function: typing.Callable = None):
-        return change_value(
-                value_to_change=self,
-                action_to_perform=action_to_perform,
-                rollback_function=rollback_function)
-
     @property
     def last_action(self):
         if not self.actions_sequence:
@@ -48,9 +39,6 @@ class Action(typing.NamedTuple):
     short_description: str = f'Changing value from {previous_value} to {actual_value}'
     full_description: str = short_description
     visibility_level: str = 'visible'
-
-    # def change_value(self, *, value: Value, rollback_function):
-    #     return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
 
 
 class Effect(typing.NamedTuple):
@@ -80,9 +68,6 @@ class Timer(typing.NamedTuple):
     @staticmethod
     def untick(*, action: Action):
         return timer_untick(action=action)
-
-    def subscribe_effect(self, *, effect: Effect) -> 'Timer':
-        return subscribe_effect_to_timer(effect=effect, timer=self)
 
 
 def change_value(*,
@@ -146,14 +131,14 @@ def timer_untick(*, action: Action) -> Timer:
     return timer
 
 
-def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) -> Value:
+def roll_back_value(*, value: Value, action_id_to_rollback: str = "last") -> Value:
     if not value.actions_sequence:
         return value
 
-    if action_id is None:
+    if action_id_to_rollback == 'last':
         return value.last_action.rollback_function(value)
 
-    matching_actions = [a for a in value.actions_sequence if a.id == action_id]
+    matching_actions = [a for a in value.actions_sequence if a.id == action_id_to_rollback]
     if not matching_actions:
         return value
 
@@ -171,11 +156,11 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
     return rolled_back_value
 
 
-def apply_effect(*,
-                 effect: Effect,
-                 value: Value,
-                 short_description: str = '',
-                 full_description: str = '') -> Value:
+def apply_effect_to_value(*,
+                          effect: Effect,
+                          value: Value,
+                          short_description: str = '',
+                          full_description: str = '') -> Value:
     if not short_description:
         if effect.short_description:
             short_description = effect.short_description
@@ -202,7 +187,7 @@ def apply_effect(*,
     return value
 
 
-def unapply_effect(*, effect: Effect, value: Value, rollback_function: typing.Callable) -> Value:
+def unapply_effect_from_value(*, effect: Effect, value: Value, rollback_function: typing.Callable) -> Value:
     remove_effect_action = Action(
             name=f'Effect "{effect.name}" removing from value "{value.name}"',
             previous_value=value,
@@ -211,7 +196,7 @@ def unapply_effect(*, effect: Effect, value: Value, rollback_function: typing.Ca
             full_description=f'Removing effect {effect.name} from {value.name}', id=str(uuid.uuid4()))
     rollback_action = Action(function=rollback_function, id=str(uuid.uuid4()))
     value = value.append_action_to_sequence(remove_effect_action)
-    value = value.change(action_to_perform=rollback_action)
+    value = change_value(value_to_change=value, action_to_perform=rollback_action, rollback_function=None)
     return value
 
 

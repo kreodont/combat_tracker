@@ -1,12 +1,14 @@
-class A:
-    pass
-
-tuple_ = (1, 2)
-list_ = [1, 2]
-another_dict = {}
-a = A()
-dict_ = {a: 1, tuple_: 2, another_dict: 4}
-print(dict_)
+import singleton
+print(singleton.a)
+# class A:
+#     pass
+#
+# tuple_ = (1, 2)
+# list_ = [1, 2]
+# another_dict = {}
+# a = A()
+# dict_ = {a: 1, tuple_: 2, another_dict: 4}
+# print(dict_)
 # import time
 #
 #
