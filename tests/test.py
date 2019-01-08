@@ -54,7 +54,7 @@ def test_change_from_action():
 
     value = Value(name='some', id='1')
     action = Action(function=change_to_100, id='1')
-    value = action.change_value(value=value, rollback_function=lambda x: x)
+    value = change_value(value_to_change=value, action_to_perform=action, rollback_function=None)
     assert value.value == 100
     assert value.last_action != action  # they should not be so since we're adding fulfilled action
     assert value.last_action.id == action.id  # but ID should be the same
@@ -65,7 +65,10 @@ def test_that_previous_value_is_still_accessible():
         v = v._replace(value=55)
         return v
     value = Value(name='some', value=4, id='1')
-    value = Action(function=change_to_55, id='1').change_value(value=value, rollback_function=lambda x: x)
+    value = change_value(
+            value_to_change=value,
+            action_to_perform=Action(function=change_to_55, id='1'),
+            rollback_function=None)
     assert value.value == 55
     assert value.actions_sequence[-1].previous_value.value == 4
 
@@ -78,11 +81,11 @@ def test_change_and_then_default_rollback():
 
     value = Value(name='some', value=1, id='1')
     action = Action(function=changing_function, id='1')
-    value = action.change_value(value=value, rollback_function=None)
+    value = change_value(action_to_perform=action, value_to_change=value, rollback_function=None)
     assert value.value == 100
     rollback_function = value.actions_sequence[-1].rollback_function
-    action = Action(function=rollback_function, id='12')
-    previous_value = action.change_value(value=value, rollback_function=lambda x: x)
+    rollback_action = Action(function=rollback_function, id='12')
+    previous_value = change_value(value_to_change=value, action_to_perform=rollback_action, rollback_function=None)
     assert previous_value.value == 1
 
 
@@ -96,24 +99,37 @@ def test_non_default_rollback():
         return v
 
     value = Value(name='some', value=14, id='1')
-    new_value = Action(function=changing_function, id='1').change_value(
-            value=value, rollback_function=rollback_function)
+    new_value = change_value(
+            action_to_perform=Action(function=changing_function, id='1'),
+            value_to_change=value,
+            rollback_function=rollback_function)
     assert new_value.value == 100
-    rolled_back_value = Action(
-            function=new_value.last_action.rollback_function, id='1').change_value(
-            value=new_value, rollback_function=rollback_function)
+
+    rolled_back_value = change_value(
+            action_to_perform=Action(function=new_value.last_action.rollback_function, id='1'),
+            value_to_change=new_value,
+            rollback_function=rollback_function)
     assert rolled_back_value.value == 105
 
 
 def test_multiple_action_aplying():
-    def changing_function(v: Value) -> Value:
+    def increment(v: Value) -> Value:
         v = v._replace(value=v.value + 1)
         return v
 
     value = Value(name='some', value=0, id='1')
-    value = Action(function=changing_function, id='1').change_value(value=value, rollback_function=lambda x: x)
-    value = Action(function=changing_function, id='2').change_value(value=value, rollback_function=lambda x: x)
-    value = Action(function=changing_function, id='3').change_value(value=value, rollback_function=lambda x: x)
+    value = change_value(
+            value_to_change=value,
+            action_to_perform=Action(function=increment, id='1'),
+            rollback_function=None)
+    value = change_value(
+            value_to_change=value,
+            action_to_perform=Action(function=increment, id='2'),
+            rollback_function=None)
+    value = change_value(
+            value_to_change=value,
+            action_to_perform=Action(function=increment, id='3'),
+            rollback_function=None)
     assert value.value == 3
     assert len(value.actions_sequence) == 3
 
@@ -130,8 +146,13 @@ def test_that_rollback_works_with_last_action():
         return v
 
     initial_value = Value(name='some', value='Initial Value', id='1')
-    changed_value = Action(function=changing_function, id='1').change_value(value=initial_value, rollback_function=None)
+    changed_value = change_value(
+            value_to_change=initial_value,
+            action_to_perform=Action(function=changing_function, id='1'),
+            rollback_function=None)
+
     assert changed_value.value == 'Changed Value'
+    # TODO: change roll_back_action to accept only action as a parameter, not value
     previous_value = roll_back_action(value=changed_value)
     assert previous_value == initial_value
 
@@ -142,7 +163,10 @@ def test_that_rollback_returns_the_same_object_if_wrong_action_id_specified():
         return v
 
     initial_value = Value(name='Some', value=13, id='1')
-    changed_value = Action(function=set_14, id='123').change_value(value=initial_value, rollback_function=lambda x: x)
+    changed_value = change_value(
+            value_to_change=initial_value,
+            action_to_perform=Action(function=set_14, id='123'),
+            rollback_function=None)
     assert changed_value.value == 14
     rolled_back_value = roll_back_action(value=changed_value, action_id='12')
     assert rolled_back_value == changed_value
@@ -154,7 +178,12 @@ def test_explicitly_specified_rollback():
         return v
 
     initial_value = Value(name='Some', value=13, id='1')
-    changed_value = Action(function=set_14, id='123').change_value(value=initial_value, rollback_function=None)
+
+    changed_value = change_value(
+            value_to_change=initial_value,
+            action_to_perform=Action(function=set_14, id='123'),
+            rollback_function=None)
+
     assert changed_value.value == 14
     rolled_back_value = roll_back_action(value=changed_value, action_id='123')
     assert rolled_back_value == initial_value
@@ -166,15 +195,26 @@ def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_
         return v
 
     initial_value = Value(name='some', value=1, id='1')
-    v_1 = Action(function=increment, id='first_increment').change_value(
-            value=initial_value, rollback_function=lambda x: x)
+
+    v_1 = change_value(
+            value_to_change=initial_value,
+            action_to_perform=Action(function=increment, id='first_increment'),
+            rollback_function=None)
     assert v_1.value == 2
-    v_2 = Action(function=increment, id='second_increment').change_value(value=v_1, rollback_function=None)
+
+    v_2 = change_value(
+            value_to_change=v_1,
+            action_to_perform=Action(function=increment, id='second_increment'),
+            rollback_function=None)
     assert v_2.value == 3
-    final_value = Action(function=increment, id='third_increment').change_value(
-            value=v_2, rollback_function=lambda x: x)
+
+    final_value = change_value(
+            value_to_change=v_2,
+            action_to_perform=Action(function=increment, id='third_increment'),
+            rollback_function=None)
     assert final_value.value == 4
     assert len(final_value.actions_sequence) == 3
+
     final_value = roll_back_action(value=final_value, action_id='second_increment')
     assert final_value.value == 3
     assert len(final_value.actions_sequence) == 2
@@ -186,16 +226,25 @@ def test_several_roll_backs():
         return v
 
     initial_value = Value(name='some', value=100, id='1')
-    v_1 = Action(function=increment_by_10, id='first_increment').change_value(
-            value=initial_value, rollback_function=None)
+    v_1 = change_value(
+            action_to_perform=Action(function=increment_by_10, id='first_increment'),
+            value_to_change=initial_value,
+            rollback_function=None)
     assert v_1.value == 110
-    v_2 = Action(function=increment_by_10, id='second_increment').change_value(value=v_1,
-                                                                               rollback_function=None)
+
+    v_2 = change_value(
+            value_to_change=v_1,
+            action_to_perform=Action(function=increment_by_10, id='second_increment'),
+            rollback_function=None)
     assert v_2.value == 120
-    final_value = Action(function=increment_by_10, id='third_increment').change_value(
-            value=v_2, rollback_function=None)
+
+    final_value = change_value(
+            action_to_perform=Action(function=increment_by_10, id='third_increment'),
+            value_to_change=v_2,
+            rollback_function=None)
     assert final_value.value == 130
     assert len(final_value.actions_sequence) == 3
+
     rolled_back_value = roll_back_action(value=final_value, action_id='second_increment')
     rolled_back_value = roll_back_action(value=rolled_back_value, action_id='first_increment')
     assert rolled_back_value.value == 110
@@ -208,16 +257,25 @@ def test_rollback_from_value_object():
         return v
 
     initial_value = Value(name='some', value=100, id='1')
-    v_1 = Action(function=increment_by_10, id='first_increment').change_value(
-            value=initial_value, rollback_function=None)
+    v_1 = change_value(
+            action_to_perform=Action(function=increment_by_10, id='first_increment'),
+            value_to_change=initial_value,
+            rollback_function=None)
     assert v_1.value == 110
-    v_2 = Action(function=increment_by_10, id='second_increment').change_value(
-            value=v_1, rollback_function=None)
+
+    v_2 = change_value(
+            action_to_perform=Action(function=increment_by_10, id='second_increment'),
+            value_to_change=v_1,
+            rollback_function=None)
     assert v_2.value == 120
-    final_value = Action(function=increment_by_10, id='third_increment').change_value(
-            value=v_2, rollback_function=None)
+
+    final_value = change_value(
+            action_to_perform=Action(function=increment_by_10, id='third_increment'),
+            value_to_change=v_2,
+            rollback_function=None)
     assert final_value.value == 130
     assert len(final_value.actions_sequence) == 3
+
     rolled_back_value = final_value.roll_back_action(action_id='second_increment')
     rolled_back_value = rolled_back_value.roll_back_action(action_id='first_increment')
     assert rolled_back_value.value == 110
@@ -252,20 +310,6 @@ def test_simple_effect_apply():
     assert value.actions_sequence[0].id != value.actions_sequence[1].id
 
 
-def test_effect_application_from_effect_object():
-    def increment_by_10(v: Value) -> Value:
-        v = v._replace(value=v.value + 10)
-        return v
-
-    value = Value(value=10, name='some', id='1')
-    effect_action = Action(function=increment_by_10, id='3')
-    effect = Effect(
-            name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
-    value = effect.apply(value=value)
-    assert value.value == 20
-    assert len(value.actions_sequence) == 2
-
-
 def test_effect_unapply():
     def increment_by_10(v: Value) -> Value:
         v = v._replace(value=v.value + 10)
@@ -279,7 +323,7 @@ def test_effect_unapply():
     effect_action = Action(function=increment_by_10, id='2')
     effect = Effect(
             name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
-    value = effect.apply(value=value)
+    value = apply_effect(effect=effect, value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
     value = unapply_effect(effect=effect, value=value, rollback_function=rollback_function)
@@ -296,10 +340,10 @@ def test_effect_unapplication_from_effect():
     effect_action = Action(function=set_200, id='4')
     effect = Effect(
             name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
-    value = effect.apply(value=value)
+    value = apply_effect(effect=effect, value=value)
     assert value.value == 200
     rollback_function = value.last_action.rollback_function
-    value = effect.unapply(value=value, rollback_function=rollback_function)
+    value = unapply_effect(effect=effect, value=value, rollback_function=rollback_function)
     assert value.value == 10
 
 
@@ -349,12 +393,21 @@ def test_that_timer_tick_can_be_undone():
     assert timer.seconds_passed == 0
     assert timer.actions_list == []
 
-# def test_that_timer_tick_finishes_effect():
-#     def set_20(v: Value) -> Value:
-#         v = v._replace(value=20)
-#         return v
-#
-#     action_make_20 = Action(id='4', function=set_20)
-#     effect = Effect(name='make 20', action=action_make_20, id='effect_0', duration_in_seconds=20)
-#     value = Value(value=10, name='1', id='10')
-#     assert True
+
+def test_that_timer_tick_finishes_effect():
+    def set_20(v: Value) -> Value:
+        v = v._replace(value=20)
+        return v
+
+    action_make_20 = Action(id='4', function=set_20)
+    effect = Effect(name='make 20', action=action_make_20, id='effect_0', duration_in_seconds=20)
+    value = Value(value=10, name='1', id='10')
+    value = apply_effect(effect=effect, value=value)
+    timer = Timer(name='Global', actions_list=[], subscribers={}, ticks=[])
+    timer.subscribe_effect(effect=effect)
+    assert value.value == 20
+    timer = timer.tick(seconds=40)
+    assert timer.seconds_passed == 40
+    effect = list(timer.subscribers.keys())[0]
+    assert effect.finished is True
+    # assert value.value == 10

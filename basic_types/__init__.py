@@ -49,8 +49,8 @@ class Action(typing.NamedTuple):
     full_description: str = short_description
     visibility_level: str = 'visible'
 
-    def change_value(self, *, value: Value, rollback_function):
-        return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
+    # def change_value(self, *, value: Value, rollback_function):
+    #     return change_value(value_to_change=value, action_to_perform=self, rollback_function=rollback_function)
 
 
 class Effect(typing.NamedTuple):
@@ -63,42 +63,12 @@ class Effect(typing.NamedTuple):
     full_description: str = short_description
     # values: typing.List[Value] = []
 
-    # @property
-    # def applied(self):
-    #     return bool(self.values)
-
-    def apply(self,
-              *,
-              value: Value,
-              # rollback_function: typing.Optional[typing.Callable],
-              short_description: str = '',
-              full_description: str = '',
-              ) -> Value:
-        return apply_effect(
-                effect=self,
-                value=value,
-                short_description=short_description,
-                full_description=full_description,
-                # rollback_function=rollback_function,
-        )
-
-    def unapply(self,
-                *,
-                value: Value,
-                rollback_function: typing.Callable,
-                ) -> Value:
-        return unapply_effect(
-                effect=self,
-                value=value,
-                rollback_function=rollback_function,
-        )
-
 
 class Timer(typing.NamedTuple):
     name: str
     ticks: typing.List[float]
     actions_list: typing.List[Action]
-    subscribers: typing.Dict[Effect, float]
+    subscribers: typing.Dict[Effect, dict]
 
     @property
     def seconds_passed(self):
@@ -110,7 +80,9 @@ class Timer(typing.NamedTuple):
     @staticmethod
     def untick(*, action: Action):
         return timer_untick(action=action)
-    # def rollback_tick(self, *, action_to_rollback) -> Timer:
+
+    def subscribe_effect(self, *, effect: Effect) -> 'Timer':
+        return subscribe_effect_to_timer(effect=effect, timer=self)
 
 
 def change_value(*,
@@ -155,6 +127,16 @@ def timer_tick(*, timer: Timer, seconds: float) -> Timer:
 
     timer.actions_list.append(action_tick)
     timer.ticks.append(seconds)
+    for effect, start_time_dict in timer.subscribers.copy().items():
+        if effect.finished:
+            continue
+        start_time = start_time_dict['start_time']
+        if start_time + effect.duration_in_seconds < timer.seconds_passed:
+            del timer.subscribers[effect]
+            effect, set_finished_action = set_effect_finished(effect=effect)
+            timer.actions_list.append(set_finished_action)
+            timer.subscribers[effect] = start_time_dict
+
     return timer
 
 
@@ -181,7 +163,10 @@ def roll_back_action(*, value: Value, action_id: typing.Optional[str] = None) ->
     if action_number < len(value.actions_sequence):  # Not the last action, need to repeat all following
         actions_to_repeat = [a for a in value.actions_sequence[action_number + 1:]]
         for a in actions_to_repeat:
-            rolled_back_value = a.change_value(value=rolled_back_value, rollback_function=action.function)
+            rolled_back_value = change_value(
+                    action_to_perform=a,
+                    value_to_change=rolled_back_value,
+                    rollback_function=action.function)
 
     return rolled_back_value
 
@@ -213,8 +198,7 @@ def apply_effect(*,
             full_description=full_description, id=str(uuid.uuid4()))
 
     value = value.append_action_to_sequence(application_action)
-    value = effect.action.change_value(value=value, rollback_function=None)
-
+    value = change_value(value_to_change=value, action_to_perform=effect.action, rollback_function=None)
     return value
 
 
@@ -229,6 +213,25 @@ def unapply_effect(*, effect: Effect, value: Value, rollback_function: typing.Ca
     value = value.append_action_to_sequence(remove_effect_action)
     value = value.change(action_to_perform=rollback_action)
     return value
+
+
+def subscribe_effect_to_timer(*, effect: Effect, timer: Timer) -> Timer:
+    timer.subscribers[effect] = {'start_time': timer.seconds_passed}
+    return timer
+
+
+def set_effect_finished(*, effect: Effect) -> typing.Tuple[Effect, Action]:
+    def rollback_function():
+        return effect._replace(finished=False)
+
+    set_finished_action = Action(
+            id=str(uuid.uuid4()),
+            name=f'Effect {effect.name} set finished',
+            rollback_function=rollback_function)
+
+    effect = effect._replace(finished=True)
+
+    return effect, set_finished_action
 
 
 if __name__ == '__main__':
