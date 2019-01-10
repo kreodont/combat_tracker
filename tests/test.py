@@ -1,5 +1,5 @@
 from basic_types import Action, Value, Effect, change_value, roll_back_value, \
-    apply_effect_to_value, unapply_effect_from_value, Timer, subscribe_effect_to_timer
+    apply_effect_to_value, unapply_effect_from_value, Timer, subscribe_effect_to_timer, timer_tick
 
 
 def test_create_empty_action():
@@ -259,7 +259,7 @@ def test_simple_effect_apply():
     value = Value(value=10, name='some', id='1')
     effect_action = Action(function=increment_by_10, id='12')
     effect = Effect(name='Increment by 10', action=effect_action, id='1')
-    value = apply_effect_to_value(effect=effect, value=value)
+    value, effect = apply_effect_to_value(effect=effect, value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
     assert value.actions_sequence[0].id != value.actions_sequence[1].id
@@ -278,7 +278,7 @@ def test_effect_unapply():
     effect_action = Action(function=increment_by_10, id='2')
     effect = Effect(
             name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
-    value = apply_effect_to_value(effect=effect, value=value)
+    value, effect = apply_effect_to_value(effect=effect, value=value)
     assert value.value == 20
     assert len(value.actions_sequence) == 2
     value = unapply_effect_from_value(effect=effect, value=value, rollback_function=rollback_function)
@@ -295,7 +295,7 @@ def test_effect_unapplication_from_effect():
     effect_action = Action(function=set_200, id='4')
     effect = Effect(
             name='Increment by 10', action=effect_action, short_description='Значение увеличивается на 10', id='1')
-    value = apply_effect_to_value(effect=effect, value=value)
+    value, effect = apply_effect_to_value(effect=effect, value=value)
     assert value.value == 200
     rollback_function = value.last_action.rollback_function
     value = unapply_effect_from_value(effect=effect, value=value, rollback_function=rollback_function)
@@ -326,22 +326,22 @@ def test_that_default_effect_duration_is_infinite():
 
 
 def test_that_default_timer_time_is_zero():
-    timer = Timer(name='default', actions_list=[], subscribers={}, ticks=[])
+    timer = Timer(name='default', actions_list=[], subscribed_effects_dict={}, ticks=[])
     assert timer.seconds_passed == 0
 
 
 def test_that_timer_tick_changes_timers_ticks():
-    timer = Timer(ticks=[20], name='default', actions_list=[], subscribers={})
+    timer = Timer(ticks=[20], name='default', actions_list=[], subscribed_effects_dict={})
     assert timer.seconds_passed == 20
-    timer = timer.tick(seconds=50)
+    timer = timer_tick(timer=timer, seconds=50)
     assert timer.seconds_passed == 70
     assert len(timer.actions_list) == 1
 
 
 def test_that_timer_tick_can_be_undone():
-    timer = Timer(name='My timer', actions_list=[], subscribers={}, ticks=[])
+    timer = Timer(name='My timer', actions_list=[], subscribed_effects_dict={}, ticks=[])
     assert timer.seconds_passed == 0
-    timer = timer.tick(seconds=5)
+    timer = timer_tick(timer=timer, seconds=5)
     assert timer.seconds_passed == 5
     assert len(timer.actions_list) == 1
     timer = timer.untick(action=timer.actions_list[0])
@@ -355,15 +355,16 @@ def test_that_timer_tick_finishes_effect():
         return v
 
     action_make_20 = Action(id='4', function=set_20)
-    effect = Effect(name='make 20', action=action_make_20, id='effect_0', duration_in_seconds=20)
-    value = Value(value=10, name='1', id='10')
-    value = apply_effect_to_value(effect=effect, value=value)
-    timer = Timer(name='Global', actions_list=[], subscribers={}, ticks=[])
-    timer = subscribe_effect_to_timer(effect=effect, timer=timer)
+    effect = Effect(name='Effect make 20 for 20 seconds', action=action_make_20, id='effect_0', duration_in_seconds=20)
+    value = Value(value=10, name='1', id='00001')
+    value_with_effect_aplied, effect_applied_to_value = apply_effect_to_value(effect=effect, value=value)
+    timer = Timer(name='Global', actions_list=[], subscribed_effects_dict={}, ticks=[])
+    timer = subscribe_effect_to_timer(effect=effect_applied_to_value, timer=timer)
 
-    assert value.value == 20
-    timer = timer.tick(seconds=40)
+    assert value_with_effect_aplied.value == 20
+    timer = timer_tick(timer=timer, seconds=40)
     assert timer.seconds_passed == 40
-    effect = list(timer.subscribers.keys())[0]
-    assert effect.finished is True
+    effect_applied_to_value = list(timer.subscribed_effects_dict.keys())[0]
+    assert effect_applied_to_value.finished is True
+    value = effect_applied_to_value.action.actual_value
     # assert value.value == 10
