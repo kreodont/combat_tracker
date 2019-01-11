@@ -366,5 +366,5 @@ def test_that_timer_tick_finishes_effect():
     assert timer.seconds_passed == 40
     effect_applied_to_value = list(timer.subscribed_effects_dict.keys())[0]
     assert effect_applied_to_value.finished is True
-    value = effect_applied_to_value.action.actual_value
-    # assert value.value == 10
+    value = effect_applied_to_value.get_value()
+    assert value.value == 10

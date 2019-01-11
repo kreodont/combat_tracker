@@ -54,6 +54,11 @@ class Effect(typing.NamedTuple):
     full_description: str = 'No full description for effect'
     # values: typing.List[Value] = []
 
+    def get_value(self):
+        if self.finished:
+            return self.action.previous_value
+        return self.action.actual_value
+
 
 class Timer(typing.NamedTuple):
     name: str
