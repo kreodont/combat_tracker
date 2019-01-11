@@ -362,7 +362,7 @@ def test_that_timer_tick_finishes_effect():
     timer = subscribe_effect_to_timer(effect=effect_applied_to_value, timer=timer)
 
     assert value_with_effect_aplied.value == 20
-    timer = timer_tick(timer=timer, seconds=10)
+    timer = timer_tick(timer=timer, seconds=10)  # 10 seconds passed, effect not finished yet
     effect_applied_to_value = timer.find_effect_by_id(effect_id=effect.id)
     assert timer.seconds_passed == 10
     assert effect_applied_to_value.finished is False
@@ -386,8 +386,8 @@ def test_d20_throw():
 
 
 def test_custom_dice_throw():
-    dice_throw = DiceThrow(minimal_possible_value=15, maximal_possible_value=15, name='d20 throw', id='1')
+    dice_throw = DiceThrow(minimal_possible_value=15, maximal_possible_value=15, name='custom throw', id='1')
     throw_action = dice_throw.throw()
     value = throw_action.actual_value
+    assert throw_action.name == 'Action for DiceThrow "custom throw"'
     assert value.value == 15
-    assert isinstance(value.value, int)

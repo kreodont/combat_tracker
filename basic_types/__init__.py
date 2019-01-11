@@ -84,9 +84,11 @@ class Timer(typing.NamedTuple):
 
 class Formula(typing.NamedTuple):
     """
-    Special value with random i.e 6d20 part + 10
+    Special value with random part i.e. 6d20 + 10
     """
-    pass
+    id: str
+    name: str
+    text_representation: str
 
 
 class DiceThrow(typing.NamedTuple):
