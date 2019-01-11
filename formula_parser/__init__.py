@@ -1,7 +1,7 @@
 import ply.lex as lex
 import re
 tokens = ('dice', 'plus', 'minus', 'number')
-t_dice = r'\d*d|к\d+'
+t_dice = r'\d*(d|к)\d+'
 t_plus = r'\+'
 t_minus = r'-'
 t_number = r'\d+'
