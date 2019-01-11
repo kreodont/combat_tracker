@@ -14,7 +14,7 @@ def t_error(t):
 
 
 lexer = lex.lex(reflags=re.UNICODE | re.DOTALL)
-test_string = '6d6 + 5 корова -к6 + 15'
+test_string = '6d6 + 5 корова -к6 + 15 +-ddd20'
 lexer.input(test_string)
 
 while True:
