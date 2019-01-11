@@ -1,5 +1,5 @@
 from basic_types import Action, Value, Effect, change_value, roll_back_value, \
-    apply_effect_to_value, unapply_effect_from_value, Timer, subscribe_effect_to_timer, timer_tick
+    apply_effect_to_value, unapply_effect_from_value, Timer, subscribe_effect_to_timer, timer_tick, DiceThrow
 
 
 def test_create_empty_action():
@@ -375,3 +375,19 @@ def test_that_timer_tick_finishes_effect():
     assert effect_applied_to_value.finished is True
     value = effect_applied_to_value.get_value()
     assert value.value == 10
+
+
+def test_d20_throw():
+    dice_throw = DiceThrow(minimal_possible_value=1, maximal_possible_value=20, name='d20 throw', id='1')
+    throw_action = dice_throw.throw()
+    value = throw_action.actual_value
+    assert 1 <= value.value <= 20
+    assert isinstance(value.value, int)
+
+
+def test_custom_dice_throw():
+    dice_throw = DiceThrow(minimal_possible_value=15, maximal_possible_value=15, name='d20 throw', id='1')
+    throw_action = dice_throw.throw()
+    value = throw_action.actual_value
+    assert value.value == 15
+    assert isinstance(value.value, int)

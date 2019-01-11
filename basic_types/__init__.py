@@ -1,6 +1,7 @@
 import typing
 import datetime
-import uuid
+from uuid import uuid4
+import random
 
 
 class Value(typing.NamedTuple):
@@ -81,6 +82,31 @@ class Timer(typing.NamedTuple):
         return matching_effects[0]
 
 
+class Formula(typing.NamedTuple):
+    """
+    Special value with random i.e 6d20 part + 10
+    """
+    pass
+
+
+class DiceThrow(typing.NamedTuple):
+    minimal_possible_value: int
+    maximal_possible_value: int
+    name: str
+    id: str
+
+    def throw(self) -> Action:
+        result = random.randint(self.minimal_possible_value, self.maximal_possible_value)
+        throwing_action = Action(
+                id=str(uuid4()),
+                name=f'Action for DiceThrow "{self.name}"',
+                time=datetime.datetime.now(),
+                previous_value=Value(id=str(uuid4()), name=f'Previous value for DiceThrow is zero', value=0),
+                actual_value=Value(id=str(uuid4()), name=f'Throw value', value=result)
+        )
+        return throwing_action
+
+
 def change_value(*,
                  value_to_change: Value,
                  action_to_perform: Action,
@@ -113,7 +139,7 @@ def timer_tick(*, timer: Timer, seconds: float) -> Timer:
         timer.ticks.remove(seconds)
         return timer
 
-    action_id = str(uuid.uuid4())
+    action_id = str(uuid4())
 
     action_tick = Action(
             id=action_id,
@@ -192,7 +218,7 @@ def apply_effect_to_value(*,
             name=f'Effect {effect.name} was applied to value {value.name} (no value changing yet)',
             previous_value=value,
             short_description=short_description,
-            full_description=full_description, id=str(uuid.uuid4()))
+            full_description=full_description, id=str(uuid4()))
 
     updated_value = value.append_action_to_sequence(application_action)
     updated_value = change_value(value_to_change=updated_value, action_to_perform=effect.action, rollback_function=None)
@@ -212,8 +238,8 @@ def unapply_effect_from_value(*, effect: Effect, value: Value, rollback_function
             previous_value=value,
             function=effect.action.rollback_function,
             short_description=f'Removing effect {effect.name} from {value.name}',
-            full_description=f'Removing effect {effect.name} from {value.name}', id=str(uuid.uuid4()))
-    rollback_action = Action(function=rollback_function, id=str(uuid.uuid4()))
+            full_description=f'Removing effect {effect.name} from {value.name}', id=str(uuid4()))
+    rollback_action = Action(function=rollback_function, id=str(uuid4()))
     value = value.append_action_to_sequence(remove_effect_action)
     value = change_value(value_to_change=value, action_to_perform=rollback_action, rollback_function=None)
     return value
@@ -229,7 +255,7 @@ def set_effect_finished(*, effect: Effect) -> typing.Tuple[Effect, Action]:
         return effect._replace(finished=False)
 
     set_finished_action = Action(
-            id=str(uuid.uuid4()),
+            id=str(uuid4()),
             name=f'Effect {effect.name} set finished',
             rollback_function=rollback_function)
 
