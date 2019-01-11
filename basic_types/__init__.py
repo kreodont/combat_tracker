@@ -1,5 +1,5 @@
 import typing
-# import datetime
+import datetime
 import uuid
 
 
@@ -7,7 +7,7 @@ class Value(typing.NamedTuple):
     name: str
     id: str
     value: typing.Any = 0
-    actions_sequence: typing.List['Action'] = ()
+    actions_sequence: typing.Tuple['Action', ...] = ()
     subscribers: list = ()
     short_description: str = f'{value}'
     full_description: str = short_description
@@ -30,7 +30,7 @@ class Value(typing.NamedTuple):
 
 class Action(typing.NamedTuple):
     id: str
-    # time: datetime.datetime = datetime.datetime.now()
+    time: datetime.datetime = datetime.datetime.now()
     name: str = f'Action {id}'
     previous_value: typing.Optional[Value] = None
     actual_value: typing.Optional[Value] = None
@@ -128,7 +128,7 @@ def timer_tick(*, timer: Timer, seconds: float) -> Timer:
             continue
         start_time = start_time_dict['start_time']
         # If it is time for effect to finish
-        if start_time + effect.duration_in_seconds < timer.seconds_passed:
+        if start_time + effect.duration_in_seconds <= timer.seconds_passed:
             del timer.subscribed_effects_dict[effect]  # unsubscribe effect
             finished_effect, set_finished_action = set_effect_finished(effect=effect)
             timer.actions_list.append(set_finished_action)

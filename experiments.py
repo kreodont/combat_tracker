@@ -1,14 +1,20 @@
-import singleton
-print(singleton.a)
-# class A:
-#     pass
-#
+# import singleton
+# print(singleton.a)
+import datetime
+import pickle
+class A:
+    pass
+
 # tuple_ = (1, 2)
 # list_ = [1, 2]
 # another_dict = {}
-# a = A()
-# dict_ = {a: 1, tuple_: 2, another_dict: 4}
-# print(dict_)
+a = A()
+a.b = [3, ]
+dict_ = {a: 1, datetime.datetime.now(): 4}
+
+print(dict_)
+string = pickle.dumps(dict_)
+print(string)
 # import time
 #
 #

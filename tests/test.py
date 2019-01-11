@@ -362,9 +362,16 @@ def test_that_timer_tick_finishes_effect():
     timer = subscribe_effect_to_timer(effect=effect_applied_to_value, timer=timer)
 
     assert value_with_effect_aplied.value == 20
-    timer = timer_tick(timer=timer, seconds=40)
-    assert timer.seconds_passed == 40
-    effect_applied_to_value = list(timer.subscribed_effects_dict.keys())[0]
+    timer = timer_tick(timer=timer, seconds=10)
+    effect_applied_to_value = timer.find_effect_by_id(effect_id=effect.id)
+    assert timer.seconds_passed == 10
+    assert effect_applied_to_value.finished is False
+    value = effect_applied_to_value.get_value()
+    assert value.value == 20
+
+    timer = timer_tick(timer=timer, seconds=10)
+    assert timer.seconds_passed == 20
+    effect_applied_to_value = timer.find_effect_by_id(effect_id=effect.id)
     assert effect_applied_to_value.finished is True
     value = effect_applied_to_value.get_value()
     assert value.value == 10
