@@ -1,7 +1,7 @@
 import ply.lex as lex
 import re
 tokens = ('dice', 'plus', 'minus', 'number')
-t_dice = r'\d*(d|к)\d+'
+t_dice = r'\d*(d|к|д)\d+'
 t_plus = r'\+'
 t_minus = r'-'
 t_number = r'\d+'
@@ -14,11 +14,16 @@ def t_error(t):
 
 
 lexer = lex.lex(reflags=re.UNICODE | re.DOTALL)
-test_string = '6d6 + 5 корова -к6 + 15 +-ddd20'
-lexer.input(test_string)
+# test_string = '6d6 + 5 корова -к6 + 15 +-ddd20'
+# lexer.input(test_string)
 
-while True:
-    tk = lexer.token()
-    if not tk:
-        break
-    print(tk)
+
+def parse_formula_string(string):
+    tokens_ = []
+    lexer.input(string)
+    while True:
+        tk = lexer.token()
+        if not tk:
+            break
+        tokens_.append(tk)
+    return tokens_

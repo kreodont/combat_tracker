@@ -2,9 +2,12 @@ import typing
 import datetime
 from uuid import uuid4
 import random
+from dataclasses import dataclass, replace
+from formula_parser import parse_formula_string
 
 
-class Value(typing.NamedTuple):
+@dataclass(frozen=True)
+class Value:
     name: str
     id: str
     value: typing.Any = 0
@@ -19,7 +22,8 @@ class Value(typing.NamedTuple):
     #     return f'{self.name}: {self.value}'
 
     def append_action_to_sequence(self, a: 'Action') -> 'Value':
-        return self._replace(actions_sequence=self.actions_sequence + (a, ))
+        return replace(self, actions_sequence=self.actions_sequence + (a,))
+        # return self._replace(actions_sequence=self.actions_sequence + (a, ))
 
     @property
     def last_action(self):
@@ -29,7 +33,8 @@ class Value(typing.NamedTuple):
             return self.actions_sequence[-1]
 
 
-class Action(typing.NamedTuple):
+@dataclass(frozen=True)
+class Action:
     id: str
     time: datetime.datetime = datetime.datetime.now()
     name: str = f'Action {id}'
@@ -42,7 +47,8 @@ class Action(typing.NamedTuple):
     visibility_level: str = 'visible'
 
 
-class Effect(typing.NamedTuple):
+@dataclass(frozen=True)
+class Effect:
     """
     Effect is an Action that has a duration
     """
@@ -53,6 +59,7 @@ class Effect(typing.NamedTuple):
     duration_in_seconds: float = float("inf")
     short_description: str = 'No short description for effect'
     full_description: str = 'No full description for effect'
+
     # values: typing.List[Value] = []
 
     def get_value(self):
@@ -61,7 +68,8 @@ class Effect(typing.NamedTuple):
         return self.action.actual_value
 
 
-class Timer(typing.NamedTuple):
+@dataclass(frozen=True)
+class Timer:
     name: str
     ticks: typing.List[float]
     actions_list: typing.List[Action]
@@ -82,7 +90,8 @@ class Timer(typing.NamedTuple):
         return matching_effects[0]
 
 
-class Formula(typing.NamedTuple):
+@dataclass(frozen=True)
+class Formula:
     """
     Special value with random part i.e. 6d20 + 10
     """
@@ -90,8 +99,12 @@ class Formula(typing.NamedTuple):
     name: str
     text_representation: str
 
+    def parse(self) -> list:
+        return parse_formula_string(self.text_representation)
 
-class DiceThrow(typing.NamedTuple):
+
+@dataclass(frozen=True)
+class DiceThrow:
     minimal_possible_value: int
     maximal_possible_value: int
     name: str
@@ -115,7 +128,8 @@ def change_value(*,
                  rollback_function: typing.Optional[typing.Callable],
                  ) -> Value:
     # Getting new value by apllying Actions function to the old value
-    new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
+    new_value = replace(value_to_change, value=action_to_perform.function(value_to_change).value)
+    # new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
 
     # If rollback function is not defined, it will be default: restore the previous state
     if rollback_function is None:
@@ -127,10 +141,14 @@ def change_value(*,
 
         rollback_function = default_rollback
 
-    fulfilled_action = action_to_perform._replace(
-            previous_value=value_to_change,
-            actual_value=new_value,
-            rollback_function=rollback_function)
+    fulfilled_action = replace(action_to_perform,
+                               previous_value=value_to_change,
+                               actual_value=new_value,
+                               rollback_function=rollback_function)
+    # fulfilled_action = action_to_perform._replace(
+    #         previous_value=value_to_change,
+    #         actual_value=new_value,
+    #         rollback_function=rollback_function)
 
     new_value = new_value.append_action_to_sequence(fulfilled_action)
     return new_value
@@ -225,12 +243,18 @@ def apply_effect_to_value(*,
     updated_value = value.append_action_to_sequence(application_action)
     updated_value = change_value(value_to_change=updated_value, action_to_perform=effect.action, rollback_function=None)
     effect_action = effect.action
-    effect_action = effect_action._replace(
-            short_description=short_description,
-            full_description=full_description,
-            previous_value=value,
-            actual_value=updated_value)
-    effect = effect._replace(action=effect_action)
+    effect_action = replace(effect_action,
+                            short_description=short_description,
+                            full_description=full_description,
+                            previous_value=value,
+                            actual_value=updated_value)
+    # effect_action = effect_action._replace(
+    #         short_description=short_description,
+    #         full_description=full_description,
+    #         previous_value=value,
+    #         actual_value=updated_value)
+    effect = replace(effect, action=effect_action)
+    # effect._replace(action=effect_action)
     return updated_value, effect
 
 
@@ -254,14 +278,16 @@ def subscribe_effect_to_timer(*, effect: Effect, timer: Timer) -> Timer:
 
 def set_effect_finished(*, effect: Effect) -> typing.Tuple[Effect, Action]:
     def rollback_function():
-        return effect._replace(finished=False)
+        return replace(effect, finished=True)
+        # return effect._replace(finished=False)
 
     set_finished_action = Action(
             id=str(uuid4()),
             name=f'Effect {effect.name} set finished',
             rollback_function=rollback_function)
 
-    finished_effect = effect._replace(finished=True)
+    finished_effect = replace(effect, finished=True)
+    # finished_effect = effect._replace(finished=True)
 
     return finished_effect, set_finished_action
 

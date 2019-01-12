@@ -1,5 +1,6 @@
 from basic_types import Action, Value, Effect, change_value, roll_back_value, \
-    apply_effect_to_value, unapply_effect_from_value, Timer, subscribe_effect_to_timer, timer_tick, DiceThrow
+    apply_effect_to_value, unapply_effect_from_value, Timer, subscribe_effect_to_timer, timer_tick, DiceThrow, Formula
+from dataclasses import replace
 
 
 def test_create_empty_action():
@@ -16,7 +17,8 @@ def test_change_integer_value_from_0_to_10():
     value = Value(name='test_value', value=0, id='1')
 
     def f(v: Value) -> Value:
-        v = v._replace(value=10)
+        v = replace(v, value=10)
+        # v = v._replace(value=10)
         return v
 
     action = Action(name='test_action', id='1', function=f)
@@ -29,11 +31,13 @@ def test_series_of_changes():
     value = Value(name='test_value', value=0, id='1')
 
     def change_to_11(v: Value) -> Value:
-        v = v._replace(value=11)
+        v = replace(v, value=11)
+        # v = v._replace(value=11)
         return v
 
     def change_to_12(v: Value) -> Value:
-        v = v._replace(value=12)
+        v = replace(v, value=12)
+        # v = v._replace(value=12)
         return v
 
     action = Action(function=change_to_11, id='1')
@@ -50,7 +54,8 @@ def test_series_of_changes():
 
 def test_change_from_action():
     def change_to_100(v: Value) -> Value:
-        v = v._replace(value=100)
+        v = replace(v, value=100)
+        # v = v._replace(value=100)
         return v
 
     value = Value(name='some', id='1')
@@ -63,7 +68,8 @@ def test_change_from_action():
 
 def test_that_previous_value_is_still_accessible():
     def change_to_55(v: Value) -> Value:
-        v = v._replace(value=55)
+        v = replace(v, value=55)
+        # v = v._replace(value=55)
         return v
     value = Value(name='some', value=4, id='1')
     value = change_value(
@@ -77,7 +83,8 @@ def test_that_previous_value_is_still_accessible():
 def test_change_and_then_default_rollback():
 
     def changing_function(v: Value) -> Value:
-        v = v._replace(value=100)
+        v = replace(v, value=100)
+        # v = v._replace(value=100)
         return v
 
     value = Value(name='some', value=1, id='1')
@@ -92,11 +99,13 @@ def test_change_and_then_default_rollback():
 
 def test_non_default_rollback():
     def changing_function(v: Value) -> Value:
-        v = v._replace(value=100)
+        v = replace(v, value=100)
+        # v = v._replace(value=100)
         return v
 
     def rollback_function(v: Value) -> Value:
-        v = v._replace(value=v.value + 5)
+        v = replace(v, value=v.value + 5)
+        # v = v._replace(value=v.value + 5)
         return v
 
     value = Value(name='some', value=14, id='1')
@@ -115,7 +124,8 @@ def test_non_default_rollback():
 
 def test_multiple_action_aplying():
     def increment(v: Value) -> Value:
-        v = v._replace(value=v.value + 1)
+        v = replace(v, value=v.value + 1)
+        # v = v._replace(value=v.value + 1)
         return v
 
     value = Value(name='some', value=0, id='1')
@@ -143,7 +153,8 @@ def test_that_rollback_returns_the_same_object_if_no_actions_were_performed_yet(
 
 def test_that_rollback_works_with_last_action():
     def changing_function(v: Value) -> Value:
-        v = v._replace(value='Changed Value')
+        v = replace(v, value='Changed Value')
+        # v = v._replace(value='Changed Value')
         return v
 
     initial_value = Value(name='some', value='Initial Value', id='1')
@@ -159,7 +170,8 @@ def test_that_rollback_works_with_last_action():
 
 def test_that_rollback_returns_the_same_object_if_wrong_action_id_specified():
     def set_14(v: Value) -> Value:
-        v = v._replace(value=14)
+        v = replace(v, value=14)
+        # v = v._replace(value=14)
         return v
 
     initial_value = Value(name='Some', value=13, id='1')
@@ -174,7 +186,8 @@ def test_that_rollback_returns_the_same_object_if_wrong_action_id_specified():
 
 def test_explicitly_specified_rollback():
     def set_14(v: Value) -> Value:
-        v = v._replace(value=14)
+        v = replace(v, value=14)
+        # v = v._replace(value=14)
         return v
 
     initial_value = Value(name='Some', value=13, id='1')
@@ -191,7 +204,8 @@ def test_explicitly_specified_rollback():
 
 def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_recalculated():
     def increment(v: Value) -> Value:
-        v = v._replace(value=v.value + 1)
+        v = replace(v, value=v.value + 1)
+        # v = v._replace(value=v.value + 1)
         return v
 
     initial_value = Value(name='some', value=1, id='1')
@@ -222,7 +236,8 @@ def test_that_if_intermediate_action_was_rolled_back_then_all_following_will_be_
 
 def test_several_roll_backs():
     def increment_by_10(v: Value) -> Value:
-        v = v._replace(value=v.value + 10)
+        v = replace(v, value=v.value + 10)
+        # v = v._replace(value=v.value + 10)
         return v
 
     initial_value = Value(name='some', value=100, id='1')
@@ -253,7 +268,8 @@ def test_several_roll_backs():
 
 def test_simple_effect_apply():
     def increment_by_10(v: Value) -> Value:
-        v = v._replace(value=v.value + 10)
+        v = replace(v, value=v.value + 10)
+        # v = v._replace(value=v.value + 10)
         return v
 
     value = Value(value=10, name='some', id='1')
@@ -267,11 +283,13 @@ def test_simple_effect_apply():
 
 def test_effect_unapply():
     def increment_by_10(v: Value) -> Value:
-        v = v._replace(value=v.value + 10)
+        v = replace(v, value=v.value + 10)
+        # v = v._replace(value=v.value + 10)
         return v
 
     def rollback_function(v: Value) -> Value:
-        v = v._replace(value=v.value - 10)
+        v = replace(v, value=v.value - 10)
+        # v = v._replace(value=v.value - 10)
         return v
 
     value = Value(value=10, name='some', id='1')
@@ -288,7 +306,8 @@ def test_effect_unapply():
 
 def test_effect_unapplication_from_effect():
     def set_200(v: Value) -> Value:
-        v = v._replace(value=200)
+        v = replace(v, value=200)
+        # v = v._replace(value=200)
         return v
 
     value = Value(value=10, name='some', id='1')
@@ -351,7 +370,8 @@ def test_that_timer_tick_can_be_undone():
 
 def test_that_timer_tick_finishes_effect():
     def set_20(v: Value) -> Value:
-        v = v._replace(value=20)
+        v = replace(v, value=20)
+        # v = v._replace(value=20)
         return v
 
     action_make_20 = Action(id='4', function=set_20)
@@ -391,3 +411,9 @@ def test_custom_dice_throw():
     value = throw_action.actual_value
     assert throw_action.name == 'Action for DiceThrow "custom throw"'
     assert value.value == 15
+
+
+def test_that_formula_parsed_correctly():
+    formula = Formula(id='4', name='Test formula', text_representation='2d6 + 12')
+    tokens = formula.parse()
+    assert len(tokens) == 3  # 2d6, plus, 12

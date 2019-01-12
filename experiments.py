@@ -1,20 +1,28 @@
 # import singleton
 # print(singleton.a)
-import datetime
-import pickle
-class A:
+from dataclasses import dataclass, field
+
+
+@dataclass(frozen=True)
+class Value:
     pass
+
+
+# import datetime
+# import pickle
+# class A:
+#     pass
 
 # tuple_ = (1, 2)
 # list_ = [1, 2]
 # another_dict = {}
-a = A()
-a.b = [3, ]
-dict_ = {a: 1, datetime.datetime.now(): 4}
-
-print(dict_)
-string = pickle.dumps(dict_)
-print(string)
+# a = A()
+# a.b = [3, ]
+# dict_ = {a: 1, datetime.datetime.now(): 4}
+#
+# print(dict_)
+# string = pickle.dumps(dict_)
+# print(string)
 # import time
 #
 #
