@@ -438,3 +438,27 @@ def test_that_d0_always_returns_0():
     actions = formula.parse()
     assert len(actions) == 1
     assert actions[0].actual_value.value == 0
+
+
+def test_that_d1_always_returns_1():
+    formula = Formula(id='1', name='One', text_representation='d1')
+    actions = formula.parse()
+    assert len(actions) == 1
+    assert actions[0].actual_value.value == 1
+
+
+def test_that_d_negative_is_forbidden():
+    formula = Formula(id='1', name='Minus 5', text_representation='d-5')
+    actions = formula.parse()
+    total_roll_value = sum((a.actual_value.value for a in actions))
+    assert total_roll_value == -5.0
+    # print('\n')
+    # for a in actions:
+    #     print(f'{a.name}, {a.actual_value.value}')
+
+
+def test_complicated_formula():
+    formula = Formula(id='1', name='Complicated', text_representation='90d0 - d1 + 3-4d1')
+    actions = formula.parse()
+    total_roll_value = sum((a.actual_value.value for a in actions))
+    assert total_roll_value == -2.0
