@@ -1,14 +1,15 @@
-from dnd_types import Attack, Formula
+from dnd_types import Roll, Formula, Action
 
 
 def test_simple_attack():
-    a = Attack(
+    r = Roll(
             name='Simple attack',
             id='1',
             formula=Formula(
                     id='1',
                     name='Simple Formula',
-                    text_representation='5d6 + 10'))
-    roll = a.roll()
-    print(roll.value)
-    assert 16 <= roll.value <= 40
+                    text_representation='5d6 + 10'),
+            type='attack',
+            main_action=Action(id='4'))
+    print(r.value)
+    assert 16 <= r.value <= 40
