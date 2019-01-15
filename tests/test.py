@@ -431,3 +431,10 @@ def test_that_formula_parsed_correctly():
     actions = formula.parse()
     assert len(actions) == 3  # action d6, action d6, action -12
     assert actions[2].actual_value.value == -12.0
+
+
+def test_that_d0_always_returns_0():
+    formula = Formula(id='1', name='Zero', text_representation='d0')
+    actions = formula.parse()
+    assert len(actions) == 1
+    assert actions[0].actual_value.value == 0

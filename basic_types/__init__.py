@@ -139,9 +139,15 @@ class Formula:
                 else:
                     dice_quantity = int(dice_quantity)
                 dice_max = int(dice_max)
+                if dice_max < 0:
+                    raise ValueError('Dice max must be >= 0')
+                if dice_max == 0:
+                    dice_min = 0
+                else:
+                    dice_min = 1
                 for dice_number in range(1, dice_quantity + 1):
                     dice_throw = DiceThrow(
-                            minimal_possible_value=1,
+                            minimal_possible_value=dice_min,
                             maximal_possible_value=dice_max,
                             id=str(uuid4()),
                             name=f'Dice d{dice_max} throw {dice_number} for token {token_number} for '
