@@ -413,7 +413,21 @@ def test_custom_dice_throw():
     assert value.value == 15
 
 
+def test_dice_throw_with_negative_value():
+    dice_throw = DiceThrow(
+            minimal_possible_value=1,
+            maximal_possible_value=6,
+            name='minus d6',
+            id='1',
+            is_negative=True)
+    throw_action = dice_throw.throw()
+    value = throw_action.actual_value
+    assert throw_action.name == 'Action for DiceThrow "minus d6"'
+    assert -6 <= value.value <= -1
+
+
 def test_that_formula_parsed_correctly():
-    formula = Formula(id='4', name='Test formula', text_representation='2d6 + 12')
-    tokens = formula.parse()
-    assert len(tokens) == 3  # 2d6, plus, 12
+    formula = Formula(id='4', name='Test formula', text_representation='2d6 - 12')
+    actions = formula.parse()
+    assert len(actions) == 3  # action d6, action d6, action -12
+    assert actions[2].actual_value.value == -12.0

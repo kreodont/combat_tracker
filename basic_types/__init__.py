@@ -99,8 +99,58 @@ class Formula:
     name: str
     text_representation: str
 
-    def parse(self) -> list:
-        return parse_formula_string(self.text_representation)
+    def parse(self) -> typing.List[Action]:
+        lex_tokens = parse_formula_string(self.text_representation)
+        actions_list = []
+        is_negative = False
+        token_number = 0
+        for lex in lex_tokens:
+            token_number += 1
+            lex_type, lex_value = getattr(lex, 'type'), getattr(lex, 'value')
+            if lex_type == 'sign':
+                if lex_value == '-':
+                    is_negative = True
+                elif lex_value == '+':
+                    is_negative = False
+            elif lex_type == 'number':
+                numeric_value = float(lex_value)
+                if is_negative:
+                    numeric_value = -numeric_value
+                number_action = Action(
+                        id=str(uuid4()),
+                        name=f'Action for token {token_number} from formula [{self.text_representation}]',
+                        actual_value=Value(
+                                id=str(uuid4()),
+                                name=f'Current value for token {token_number} from '
+                                f'formula [{self.text_representation}]',
+                                value=numeric_value),
+                        previous_value=Value(
+                                id=str(uuid4()),
+                                name=f'Previous value for token {token_number} from '
+                                f'formula [{self.text_representation}]',
+                                value=0)
+                )
+                actions_list.append(number_action)
+            elif lex_type == 'dice':
+                lex_value = lex_value.replace('к', 'd').replace('д', 'd')
+                dice_quantity, dice_max = lex_value.split('d')
+                if not dice_quantity:
+                    dice_quantity = 1
+                else:
+                    dice_quantity = int(dice_quantity)
+                dice_max = int(dice_max)
+                for dice_number in range(1, dice_quantity + 1):
+                    dice_throw = DiceThrow(
+                            minimal_possible_value=1,
+                            maximal_possible_value=dice_max,
+                            id=str(uuid4()),
+                            name=f'Dice d{dice_max} throw {dice_number} for token {token_number} for '
+                            f'formula [{self.text_representation}]',
+                            is_negative=is_negative)
+                    throwing_action = dice_throw.throw()
+                    actions_list.append(throwing_action)
+
+        return actions_list
 
 
 @dataclass(frozen=True)
@@ -109,9 +159,13 @@ class DiceThrow:
     maximal_possible_value: int
     name: str
     id: str
+    is_negative: bool = False
 
     def throw(self) -> Action:
         result = random.randint(self.minimal_possible_value, self.maximal_possible_value)
+        if self.is_negative:
+            result = -result
+
         throwing_action = Action(
                 id=str(uuid4()),
                 name=f'Action for DiceThrow "{self.name}"',
@@ -120,6 +174,12 @@ class DiceThrow:
                 actual_value=Value(id=str(uuid4()), name=f'Throw value', value=result)
         )
         return throwing_action
+
+    def several_throws(self, number: int) -> typing.List[Action]:
+        actions = []
+        for _ in range(number):
+            actions.append(self.throw())
+        return actions
 
 
 def change_value(*,

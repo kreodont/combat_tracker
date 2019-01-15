@@ -1,9 +1,9 @@
 import ply.lex as lex
 import re
-tokens = ('dice', 'plus', 'minus', 'number')
+import typing
+tokens = ('dice', 'sign', 'number')
 t_dice = r'\d*(d|к|д)\d+'
-t_plus = r'\+'
-t_minus = r'-'
+t_sign = r'\+|-'
 t_number = r'\d+'
 
 t_ignore = ' \r\n\t\f'
@@ -18,7 +18,8 @@ lexer = lex.lex(reflags=re.UNICODE | re.DOTALL)
 # lexer.input(test_string)
 
 
-def parse_formula_string(string):
+def parse_formula_string(string) -> typing.List[lex.LexToken]:
+    string = string.replace(' ', '').strip()  # making sure there is no spaces in string
     tokens_ = []
     lexer.input(string)
     while True:
@@ -27,3 +28,8 @@ def parse_formula_string(string):
             break
         tokens_.append(tk)
     return tokens_
+
+
+if __name__ == '__main__':
+    for tk_ in parse_formula_string('2d6 + 12'):
+        print(getattr(tk_, 'type'), getattr(tk_, 'value'))

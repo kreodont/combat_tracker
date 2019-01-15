@@ -1,11 +1,14 @@
 # import singleton
 # print(singleton.a)
-from dataclasses import dataclass, field
-
-
-@dataclass(frozen=True)
-class Value:
-    pass
+string = 'd6'
+tokens = string.split('d')
+print(tokens)
+# from dataclasses import dataclass, field
+#
+#
+# @dataclass(frozen=True)
+# class Value:
+#     pass
 
 
 # import datetime
