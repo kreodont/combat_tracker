@@ -44,7 +44,7 @@ class Roll:
         if not self.dependent_actions:
             self.dependent_actions.extend(self.formula.parse())
 
-    def cancell(self) -> 'Roll':
+    def cancel(self) -> 'Roll':
         cancelled_actions_list = []
         for a in self.dependent_actions:
             cancelled_actions_list.append(replace(a,
@@ -56,6 +56,19 @@ class Roll:
                                  dependent_actions=cancelled_actions_list)
         return cancelled_roll
 
+    def cancel_single_throw(self, *, throw_number: int) -> 'Roll':
+        if len(self.dependent_actions) <= throw_number:
+            return self
+        action_to_cancel = self.dependent_actions[throw_number]
+        action_to_cancel = replace(action_to_cancel,
+                                   actual_value=action_to_cancel.previous_value,
+                                   previous_value=action_to_cancel.actual_value)
+
+        new_actions_list = self.dependent_actions
+        new_actions_list[throw_number] = action_to_cancel
+        return replace(self, dependent_actions=new_actions_list)
+
     @property
     def value(self):
+
         return sum((a.actual_value.value for a in self.dependent_actions))
