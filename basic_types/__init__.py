@@ -40,8 +40,8 @@ class Action:
     name: str = f'Action {id}'
     previous_value: typing.Optional[Value] = None
     actual_value: typing.Optional[Value] = None
-    function: typing.Callable[..., Value] = None
-    rollback_function: typing.Callable[..., typing.Any] = None
+    function: typing.Optional[typing.Callable] = None
+    rollback_function: typing.Optional[typing.Callable] = None
     short_description: str = f'Changing value from {previous_value} to {actual_value}'
     full_description: str = short_description
     visibility_level: str = 'visible'
@@ -187,14 +187,19 @@ class DiceThrow:
 
 def change_value(*,
                  value_to_change: Value,
-                 action_to_perform: Action,
-                 rollback_function: typing.Optional[typing.Callable],
-                 ) -> Value:
+                 changing_function: typing.Optional[typing.Callable] = None,
+                 rollback_function: typing.Optional[typing.Callable] = None,
+                 change_name: str = ''
+                 ) -> Action:
     # Getting new value by apllying Actions function to the old value
-    if action_to_perform.function is None:
-        return value_to_change
+    if changing_function is None:
+        return Action(
+                actual_value=value_to_change,
+                previous_value=value_to_change,
+                function=changing_function,
+                rollback_function=rollback_function)
 
-    new_value = replace(value_to_change, value=action_to_perform.function(value_to_change).value)
+    new_value = replace(value_to_change, value=changing_function(value_to_change.value))
     # new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
 
     # If rollback function is not defined, it will be default: restore the previous state
@@ -206,18 +211,25 @@ def change_value(*,
             return old_value
 
         rollback_function = default_rollback
-
-    fulfilled_action = replace(action_to_perform,
-                               previous_value=value_to_change,
-                               actual_value=new_value,
-                               rollback_function=rollback_function)
+    if change_name == '':
+        change_name = f'Changing value {value_to_change.name} from {value_to_change.value} to {new_value.value}'
+    changing_action = Action(
+            actual_value=new_value,
+            previous_value=value_to_change,
+            name=change_name,
+            rollback_function=rollback_function)
+        # = replace(action_to_perform,
+        #                        previous_value=value_to_change,
+        #                        actual_value=new_value,
+        #                        rollback_function=rollback_function)
     # fulfilled_action = action_to_perform._replace(
     #         previous_value=value_to_change,
     #         actual_value=new_value,
     #         rollback_function=rollback_function)
 
-    new_value = new_value.append_action_to_sequence(fulfilled_action)
-    return new_value
+    new_value = new_value.append_action_to_sequence(changing_action)
+    replace(changing_action, actual_value=new_value)
+    return changing_action
 
 
 def timer_tick(*, timer: Timer, seconds: float) -> Timer:
@@ -270,7 +282,7 @@ def roll_back_value(*, value: Value, action_id_to_rollback: str = "last") -> Val
         actions_to_repeat = [a for a in value.actions_sequence[action_number + 1:]]
         for a in actions_to_repeat:
             rolled_back_value = change_value(
-                    action_to_perform=a,
+                    changing_function=a.rollback_function,
                     value_to_change=rolled_back_value,
                     rollback_function=action.function)
 
@@ -304,7 +316,10 @@ def apply_effect_to_value(*,
             full_description=full_description)
 
     updated_value = value.append_action_to_sequence(application_action)
-    updated_value = change_value(value_to_change=updated_value, action_to_perform=effect.action, rollback_function=None)
+    updated_value = change_value(
+            value_to_change=updated_value,
+            changing_function=effect.action.function,
+            rollback_function=None)
     effect_action = effect.action
     effect_action = replace(effect_action,
                             short_description=short_description,
