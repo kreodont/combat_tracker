@@ -15,7 +15,7 @@ def test_create_empty_value():
 
 def test_that_empty_action_doesnt_change_value():
     old_value = Value(value=42)
-    new_value = change_value(value_to_change=old_value, action_to_perform=Action(), rollback_function=None)
+    new_value = change_value(value_to_change=old_value, changing_function=None, rollback_function=None).actual_value
     assert old_value == new_value
 
 
