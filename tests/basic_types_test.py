@@ -9,8 +9,8 @@ def test_create_empty_action():
 
 
 def test_create_empty_value():
-    value = Value(name='test_value')
-    assert value.full_description == '0'
+    value = Value(name='test_value', value='0')
+    assert value.full_description == 'No full description'
 
 
 def test_change_integer_value_from_0_to_10():
@@ -58,7 +58,7 @@ def test_change_from_action():
         # v = v._replace(value=100)
         return v
 
-    value = Value(name='some')
+    value = Value(name='some', value=0)
     action = Action(function=change_to_100)
     value = change_value(value_to_change=value, action_to_perform=action, rollback_function=None)
     assert value.value == 100
@@ -328,8 +328,8 @@ def test_that_2_consequence_actions_have_different_id():
 
 
 def test_that_2_different_values_always_have_different_id():
-    value1 = Value(name='value1')
-    value2 = Value(name='value2')
+    value1 = Value(name='value1', value=0)
+    value2 = Value(name='value2', value=0)
     assert value1.id != value2.id
 
 

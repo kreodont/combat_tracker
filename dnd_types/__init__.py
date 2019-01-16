@@ -1,6 +1,6 @@
 from basic_types import Action, Formula
 import typing
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from uuid import uuid4, UUID
 
 
@@ -25,20 +25,36 @@ from uuid import uuid4, UUID
 #         )
 #         return roll_object
 
+def default_main_action() -> Action:
+    return Action(name=f'Action roll performed')
+
 
 @dataclass(frozen=True)
 class Roll:
-    name: str
     formula: Formula
-    main_action: Action
     type: str
+    name: str = 'Noname roll'
+    main_action: Action = field(default_factory=default_main_action)
     id: UUID = field(default_factory=uuid4)
     dependent_actions: typing.List[Action] = field(default_factory=list, hash=False)
     short_description: str = 'Roll without a short description'
     long_description: str = 'Roll without a long description'
 
     def __post_init__(self):
-        self.dependent_actions.extend(self.formula.parse())
+        if not self.dependent_actions:
+            self.dependent_actions.extend(self.formula.parse())
+
+    def cancell(self) -> 'Roll':
+        cancelled_actions_list = []
+        for a in self.dependent_actions:
+            cancelled_actions_list.append(replace(a,
+                                                  name=f'Action {self.name} cancelled',
+                                                  previous_value=a.actual_value,
+                                                  actual_value=a.previous_value))
+        cancelled_roll = replace(self,
+                                 name=f'Roll {self.name} cancelled',
+                                 dependent_actions=cancelled_actions_list)
+        return cancelled_roll
 
     @property
     def value(self):

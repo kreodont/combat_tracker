@@ -8,13 +8,13 @@ from formula_parser import parse_formula_string
 
 @dataclass(frozen=True)
 class Value:
-    name: str
+    value: typing.Any
+    name: str = 'Noname value'
     id: UUID = field(default_factory=uuid4)
-    value: typing.Any = 0
     actions_sequence: typing.Tuple['Action', ...] = ()
     subscribers: list = ()
-    short_description: str = f'{value}'
-    full_description: str = short_description
+    short_description: str = 'No short description'
+    full_description: str = 'No full description'
     children: typing.List['Value'] = ()
     parent: typing.Optional['Value'] = None
 
@@ -95,8 +95,8 @@ class Formula:
     """
     Special value with random part i.e. 6d20 + 10
     """
-    name: str
     text_representation: str
+    name: str = 'Noname formula'
     id: UUID = field(default_factory=uuid4)
 
     def parse(self) -> typing.List[Action]:
