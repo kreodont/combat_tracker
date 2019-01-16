@@ -1,4 +1,4 @@
-from dnd_types import Roll, Formula, Action
+from dnd_types import Roll, Formula, Action, Rule
 
 
 def test_simple_attack():
@@ -73,3 +73,19 @@ def test_that_roll_value_can_be_set_manually():
     manuall_roll = roll.manual_set_value(manual_value=42)
     assert manuall_roll.value == 42
     assert manuall_roll.previous_value == roll_value
+
+
+def test_simple_rule():
+    def d20_check(roll: Roll):
+        if roll.formula.text_representation != 'd20':
+            return False, 'Правило применимо только к броскам d20'
+        if 1 <= roll.value <= 20:
+            return True, ''
+        return False, 'Значение броска d20 должно находиться в пределах от 1 до 20'
+    rule = Rule(check_function=d20_check)
+    assert rule.check_function(Roll(formula=Formula(text_representation='d20'), type='attack')) == (True, '')
+    assert rule.check_function(Roll(
+            formula=Formula(text_representation='2d20'),
+            type='attack')) == (False, 'Правило применимо только к броскам d20')
+    wrong_d20_roll = Roll(formula=Formula(text_representation='d20'), type='attack').manual_set_value(manual_value=30)
+    assert rule.check_function(wrong_d20_roll) == (False, 'Значение броска d20 должно находиться в пределах от 1 до 20')

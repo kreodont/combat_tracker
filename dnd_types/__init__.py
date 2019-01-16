@@ -4,27 +4,6 @@ from dataclasses import dataclass, field, replace
 from uuid import uuid4, UUID
 
 
-# @dataclass(frozen=True)
-# class Attack:
-#     name: str
-#     id: str
-#     formula: Formula
-#     short_description: str = 'Attack without a short description'
-#     long_description: str = 'Attack without a long description'
-#
-#     def roll(self) -> 'Roll':
-#         roll_object = Roll(
-#                 name=f'Roll for attack "{self.name}"',
-#                 id=str(uuid4()),
-#                 main_action=Action(
-#                         id=str(uuid4()),
-#                         name=f'Main action for roll for attack {self.name}'),
-#                 dependent_actions=self.formula.parse(),
-#                 type='attack'
-#
-#         )
-#         return roll_object
-
 def default_main_action() -> Action:
     return Action(name=f'Action roll performed')
 
@@ -82,3 +61,12 @@ class Roll:
     @property
     def previous_value(self):
         return sum((a.previous_value.value for a in self.dependent_actions))
+
+
+@dataclass(frozen=TabError)
+class Rule:
+    check_function: typing.Callable[..., typing.Tuple[bool, str]]
+    name: str = 'Noname rule'
+    id: UUID = field(default_factory=uuid4)
+    description = 'No description'
+    source = 'Source not defined'
