@@ -1,15 +1,15 @@
 import typing
 import datetime
-from uuid import uuid4
+from uuid import uuid4, UUID
 import random
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
 from formula_parser import parse_formula_string
 
 
 @dataclass(frozen=True)
 class Value:
     name: str
-    id: str
+    id: UUID = field(default_factory=uuid4)
     value: typing.Any = 0
     actions_sequence: typing.Tuple['Action', ...] = ()
     subscribers: list = ()
@@ -35,7 +35,7 @@ class Value:
 
 @dataclass(frozen=True)
 class Action:
-    id: str
+    id: UUID = field(default_factory=uuid4)
     time: datetime.datetime = datetime.datetime.now()
     name: str = f'Action {id}'
     previous_value: typing.Optional[Value] = None
@@ -54,7 +54,7 @@ class Effect:
     """
     name: str
     action: Action
-    id: str
+    id: UUID = field(default_factory=uuid4)
     finished: bool = False
     duration_in_seconds: float = float("inf")
     short_description: str = 'No short description for effect'
@@ -95,9 +95,9 @@ class Formula:
     """
     Special value with random part i.e. 6d20 + 10
     """
-    id: str
     name: str
     text_representation: str
+    id: UUID = field(default_factory=uuid4)
 
     def parse(self) -> typing.List[Action]:
         lex_tokens = parse_formula_string(self.text_representation)
@@ -112,25 +112,24 @@ class Formula:
                     is_negative = True
                 elif lex_value == '+':
                     is_negative = False
+
             elif lex_type == 'number':
                 numeric_value = float(lex_value)
                 if is_negative:
                     numeric_value = -numeric_value
                 number_action = Action(
-                        id=str(uuid4()),
                         name=f'Action for token {token_number} from formula [{self.text_representation}]',
                         actual_value=Value(
-                                id=str(uuid4()),
                                 name=f'Current value for token {token_number} from '
                                 f'formula [{self.text_representation}]',
                                 value=numeric_value),
                         previous_value=Value(
-                                id=str(uuid4()),
                                 name=f'Previous value for token {token_number} from '
                                 f'formula [{self.text_representation}]',
                                 value=0)
                 )
                 actions_list.append(number_action)
+
             elif lex_type == 'dice':
                 lex_value = lex_value.replace('к', 'd').replace('д', 'd')
                 dice_quantity, dice_max = lex_value.split('d')
@@ -149,7 +148,6 @@ class Formula:
                     dice_throw = DiceThrow(
                             minimal_possible_value=dice_min,
                             maximal_possible_value=dice_max,
-                            id=str(uuid4()),
                             name=f'Dice d{dice_max} throw {dice_number} for token {token_number} for '
                             f'formula [{self.text_representation}]',
                             is_negative=is_negative)
@@ -164,7 +162,7 @@ class DiceThrow:
     minimal_possible_value: int
     maximal_possible_value: int
     name: str
-    id: str
+    id: UUID = field(default_factory=uuid4)
     is_negative: bool = False
 
     def throw(self) -> Action:
@@ -173,11 +171,10 @@ class DiceThrow:
             result = -result
 
         throwing_action = Action(
-                id=str(uuid4()),
                 name=f'Action for DiceThrow "{self.name}"',
                 time=datetime.datetime.now(),
-                previous_value=Value(id=str(uuid4()), name=f'Previous value for DiceThrow is zero', value=0),
-                actual_value=Value(id=str(uuid4()), name=f'Throw value', value=result)
+                previous_value=Value(name=f'Previous value for DiceThrow is zero', value=0),
+                actual_value=Value(name=f'Throw value', value=result)
         )
         return throwing_action
 
@@ -225,10 +222,7 @@ def timer_tick(*, timer: Timer, seconds: float) -> Timer:
         timer.ticks.remove(seconds)
         return timer
 
-    action_id = str(uuid4())
-
     action_tick = Action(
-            id=action_id,
             name=f'Timer "{timer.name}" changed by {seconds} seconds',
             rollback_function=rollback_timer_tick_function,
     )
@@ -304,7 +298,7 @@ def apply_effect_to_value(*,
             name=f'Effect {effect.name} was applied to value {value.name} (no value changing yet)',
             previous_value=value,
             short_description=short_description,
-            full_description=full_description, id=str(uuid4()))
+            full_description=full_description)
 
     updated_value = value.append_action_to_sequence(application_action)
     updated_value = change_value(value_to_change=updated_value, action_to_perform=effect.action, rollback_function=None)
@@ -330,8 +324,8 @@ def unapply_effect_from_value(*, effect: Effect, value: Value, rollback_function
             previous_value=value,
             function=effect.action.rollback_function,
             short_description=f'Removing effect {effect.name} from {value.name}',
-            full_description=f'Removing effect {effect.name} from {value.name}', id=str(uuid4()))
-    rollback_action = Action(function=rollback_function, id=str(uuid4()))
+            full_description=f'Removing effect {effect.name} from {value.name}')
+    rollback_action = Action(function=rollback_function)
     value = value.append_action_to_sequence(remove_effect_action)
     value = change_value(value_to_change=value, action_to_perform=rollback_action, rollback_function=None)
     return value
@@ -348,7 +342,6 @@ def set_effect_finished(*, effect: Effect) -> typing.Tuple[Effect, Action]:
         # return effect._replace(finished=False)
 
     set_finished_action = Action(
-            id=str(uuid4()),
             name=f'Effect {effect.name} set finished',
             rollback_function=rollback_function)
 
