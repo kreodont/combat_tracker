@@ -1,7 +1,7 @@
 from basic_types import Action, Formula
 import typing
 from dataclasses import dataclass, field
-# from uuid import uuid4
+from uuid import uuid4, UUID
 
 
 # @dataclass(frozen=True)
@@ -29,10 +29,10 @@ from dataclasses import dataclass, field
 @dataclass(frozen=True)
 class Roll:
     name: str
-    id: str
     formula: Formula
     main_action: Action
     type: str
+    id: UUID = field(default_factory=uuid4)
     dependent_actions: typing.List[Action] = field(default_factory=list, hash=False)
     short_description: str = 'Roll without a short description'
     long_description: str = 'Roll without a long description'
