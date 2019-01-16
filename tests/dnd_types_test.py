@@ -82,6 +82,7 @@ def test_simple_rule():
         if 1 <= roll.value <= 20:
             return True, ''
         return False, 'Значение броска d20 должно находиться в пределах от 1 до 20'
+
     rule = Rule(check_function=d20_check)
     assert rule.check_function(Roll(formula=Formula(text_representation='d20'), type='attack')) == (True, '')
     assert rule.check_function(Roll(
