@@ -161,7 +161,7 @@ class Formula:
 class DiceThrow:
     minimal_possible_value: int
     maximal_possible_value: int
-    name: str
+    name: str = 'Noname dice throw'
     id: UUID = field(default_factory=uuid4)
     is_negative: bool = False
 

@@ -1,4 +1,4 @@
-from basic_types import Action, Formula
+from basic_types import Action, Formula, Value
 import typing
 from dataclasses import dataclass, field, replace
 from uuid import uuid4, UUID
@@ -68,7 +68,17 @@ class Roll:
         new_actions_list[throw_number] = action_to_cancel
         return replace(self, dependent_actions=new_actions_list)
 
+    def manual_set_value(self, *, manual_value: int) -> 'Roll':
+        manual_value_action = Action(actual_value=Value(value=manual_value), previous_value=Value(value=0))
+        previous_actions_list = []
+        for a in self.dependent_actions:
+            previous_actions_list.append(replace(a, previous_value=a.actual_value, actual_value=Value(value=0)))
+        return replace(self, dependent_actions=previous_actions_list + [manual_value_action, ])
+
     @property
     def value(self):
-
         return sum((a.actual_value.value for a in self.dependent_actions))
+
+    @property
+    def previous_value(self):
+        return sum((a.previous_value.value for a in self.dependent_actions))

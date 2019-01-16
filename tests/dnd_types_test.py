@@ -56,3 +56,20 @@ def test_that_specifying_roll_number_more_than_roll_has_takes_no_effect():
     assert 1 <= roll_value <= 20
     new_roll = roll.cancel_single_throw(throw_number=1)  # there is only 0th value
     assert new_roll.value == roll_value
+
+
+def test_that_after_roll_cancelled_previous_value_of_the_roll_still_accessible():
+    roll = Roll(type='attack', formula=Formula(text_representation='d1 - d0 + 2'))
+    assert roll.value == 3
+    changed_roll = roll.cancel()
+    assert changed_roll.value == 0
+    assert changed_roll.previous_value == 3
+
+
+def test_that_roll_value_can_be_set_manually():
+    roll = Roll(type='attack', formula=Formula(text_representation='d20'))
+    roll_value = roll.value
+    assert 1 <= roll_value <= 20
+    manuall_roll = roll.manual_set_value(manual_value=42)
+    assert manuall_roll.value == 42
+    assert manuall_roll.previous_value == roll_value
