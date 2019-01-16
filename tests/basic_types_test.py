@@ -13,6 +13,12 @@ def test_create_empty_value():
     assert value.full_description == 'No full description'
 
 
+def test_that_empty_action_doesnt_change_value():
+    old_value = Value(value=42)
+    new_value = change_value(value_to_change=old_value, action_to_perform=Action(), rollback_function=None)
+    assert old_value == new_value
+
+
 def test_change_integer_value_from_0_to_10():
     value = Value(name='test_value', value=0)
 

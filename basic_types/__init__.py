@@ -191,6 +191,9 @@ def change_value(*,
                  rollback_function: typing.Optional[typing.Callable],
                  ) -> Value:
     # Getting new value by apllying Actions function to the old value
+    if action_to_perform.function is None:
+        return value_to_change
+
     new_value = replace(value_to_change, value=action_to_perform.function(value_to_change).value)
     # new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
 
