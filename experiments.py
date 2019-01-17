@@ -1,8 +1,36 @@
 # import singleton
 # print(singleton.a)
-string = 'd6'
-tokens = string.split('d')
-print(tokens)
+# --------------------------- task ---------------
+#Take all the items from second argument 'list' and add them to 'items' and then return concatenated list
+# If second parameter is not specified, should return the unchanged first parameter
+# ListsConcatenation(['a', 'b'], ['c', 'd']) = ['a', 'b', 'c', 'd']
+# ListsConcatenation([1, 2, 3]) = [1, 2, 3]
+
+# def ListsConcatenation(items, list=[]):
+#     for l in list:
+#     items[len(items)] = l
+#     return items
+
+# ------------------------- end of task -------------
+# def ListsConcatenation(list1, list2=[]):
+#     for l in list2:
+#         list1.append(l)
+#     return list1
+# print(ListsConcatenation(['a', 'b'], ['c', 'd']))
+
+#
+# test_list1 = list_concatenation(['a', 'b'])
+# print(test_list1)
+# test_list2 = list_concatenation([1, 2, 3])
+# print(test_list2)
+
+# list1 = ['a', 'b']
+# list2 = ['c', 'd']
+# print(AddToList(list1, list2))
+
+# string = 'd6'
+# tokens = string.split('d')
+# print(tokens)
 # from dataclasses import dataclass, field
 #
 #

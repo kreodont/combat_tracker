@@ -5,7 +5,7 @@ from dataclasses import replace
 
 def test_create_empty_action():
     action = Action(name='test_action')
-    assert action.full_description == 'Changing value from None to None'
+    assert action.full_description == 'No full description'
 
 
 def test_create_empty_value():

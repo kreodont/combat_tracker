@@ -36,14 +36,14 @@ class Value:
 @dataclass(frozen=True)
 class Action:
     id: UUID = field(default_factory=uuid4)
-    time: datetime.datetime = datetime.datetime.now()
-    name: str = f'Action {id}'
+    time: datetime.datetime = field(default_factory=datetime.datetime.now)
+    name: str = f'Noname action'
     previous_value: typing.Optional[Value] = None
     actual_value: typing.Optional[Value] = None
     function: typing.Optional[typing.Callable] = None
     rollback_function: typing.Optional[typing.Callable] = None
-    short_description: str = f'Changing value from {previous_value} to {actual_value}'
-    full_description: str = short_description
+    short_description: str = f'No short description'
+    full_description: str = f'No full description'
     visibility_level: str = 'visible'
 
 
@@ -187,8 +187,8 @@ class DiceThrow:
 
 def change_value(*,
                  value_to_change: Value,
-                 changing_function: typing.Optional[typing.Callable] = None,
-                 rollback_function: typing.Optional[typing.Callable] = None,
+                 changing_function: typing.Optional[typing.Callable[[Value, ], Value]] = None,
+                 rollback_function: typing.Optional[typing.Callable[[Value, ], Value]] = None,
                  change_name: str = ''
                  ) -> Action:
     # Getting changing action by apllying changing function to the old value

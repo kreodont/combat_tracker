@@ -39,6 +39,31 @@ class Game:
 
         return new_game_state
 
+    def cancel_action(self, *, action_id: UUID) -> 'Game':
+        list_actions_to_cancel = [a for a in self.actions_list if a.id == action_id]
+        if not list_actions_to_cancel:
+            return self
+
+        action_to_cancel = list_actions_to_cancel[0]
+        number_action_to_cancel = self.actions_list.index(action_to_cancel)
+
+        # if the action was new object creation, we then must ignore all actions made with this object
+        if action_to_cancel.previous_value is None:
+            ignoring_object_id = action_to_cancel.actual_value.id
+        else:
+            ignoring_object_id = None
+
+        game_with_action_cancelled = Game()
+        for action in self.actions_list[:number_action_to_cancel]:
+            game_with_action_cancelled = game_with_action_cancelled.make_action(action=action)
+
+        for action in self.actions_list[number_action_to_cancel + 1:]:
+            if ignoring_object_id and action.previous_value.id == ignoring_object_id:
+                continue
+            game_with_action_cancelled = game_with_action_cancelled.make_action(action=action)
+
+        return game_with_action_cancelled
+
 
 if __name__ == '__main__':
     game = Game()
