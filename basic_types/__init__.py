@@ -191,7 +191,9 @@ def change_value(*,
                  rollback_function: typing.Optional[typing.Callable] = None,
                  change_name: str = ''
                  ) -> Action:
-    # Getting new value by apllying Actions function to the old value
+    # Getting changing action by apllying changing function to the old value
+
+    # If changing action is None, return zero action
     if changing_function is None:
         return Action(
                 actual_value=value_to_change,
@@ -199,7 +201,7 @@ def change_value(*,
                 function=changing_function,
                 rollback_function=rollback_function)
 
-    new_value = replace(value_to_change, value=changing_function(value_to_change.value))
+    new_value = replace(value_to_change, value=changing_function(value_to_change).value)
     # new_value = value_to_change._replace(value=action_to_perform.function(value_to_change).value)
 
     # If rollback function is not defined, it will be default: restore the previous state
@@ -225,7 +227,7 @@ def change_value(*,
     #         rollback_function=rollback_function)
 
     new_value = new_value.append_action_to_sequence(changing_action)
-    replace(changing_action, actual_value=new_value)
+    changing_action = replace(changing_action, actual_value=new_value)
     return changing_action
 
 
@@ -281,7 +283,7 @@ def roll_back_value(*, value: Value, action_id_to_rollback: str = "last") -> Val
             rolled_back_value = change_value(
                     changing_function=a.rollback_function,
                     value_to_change=rolled_back_value,
-                    rollback_function=action.function)
+                    rollback_function=action.function).actual_value
 
     return rolled_back_value
 
