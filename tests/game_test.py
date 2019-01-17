@@ -85,3 +85,12 @@ def test_cancel_object_creation_action():
     game = game.cancel_action(action_id=create_action.id)
     assert len(game.actions_list) == 1
     assert len(game.objects_dict) == 1
+
+
+def test_save_and_load():
+    game = Game()
+    game = game.make_action(action=Action(actual_value=Value(value=42)))
+    save_game_result = game.save_to_disk(filename='test_save_and_load.game')
+    assert save_game_result == 'OK'
+    loaded_game = Game.load_from_disk(filename='test_save_and_load.game')
+    assert loaded_game == game

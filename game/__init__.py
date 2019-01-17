@@ -2,6 +2,7 @@ from dataclasses import dataclass, field, replace
 import typing
 from basic_types import Action, Value
 from uuid import UUID
+import pickle
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,32 @@ class Game:
             game_with_action_cancelled = game_with_action_cancelled.make_action(action=action)
 
         return game_with_action_cancelled
+
+    def full_text_search(self, *, text_to_search) -> typing.Dict[UUID, Value]:
+        return {k: v for k, v in self.objects_dict.items() if
+                text_to_search in v.name or
+                text_to_search in v.short_description or
+                text_to_search in v.full_description or
+                text_to_search in str(v.value)}
+
+    def save_to_disk(self, *, filename) -> str:
+        try:
+            with open(filename, 'wb') as output_file:
+                pickle.dump(self, output_file)
+                return 'OK'
+        except Exception as e:
+            return str(e)
+
+    @staticmethod
+    def load_from_disk(*, filename) -> 'Game':
+        try:
+            with open(filename, 'rb') as input_file:
+                loaded_game = pickle.load(input_file)
+                return loaded_game
+
+        except Exception as e:
+            print(e)
+            return Game()
 
 
 if __name__ == '__main__':
