@@ -58,3 +58,30 @@ def test_cancel_last_action():
     assert len(game_with_canceled_last_action.actions_list) == 1
     assert len(game_with_canceled_last_action.objects_dict) == 1
     assert game_with_canceled_last_action.last_action.actual_value == game.last_action.actual_value
+
+
+def test_cancel_object_creation_action():
+    game = Game()
+    create_action = Action(actual_value=Value(value=42))
+    game = game.make_action(action=create_action)
+    created_value = game.last_action.actual_value
+    game = game.make_action(
+            action=change_value(
+                    value_to_change=created_value,
+                    changing_function=lambda x: Value(value=43),
+            ),
+    )
+    game = game.make_action(
+            action=change_value(
+                    value_to_change=created_value,
+                    changing_function=lambda x: Value(value=43),
+            ),
+    )
+    assert len(game.actions_list) == 3
+    assert len(game.objects_dict) == 1
+    game = game.make_action(action=Action(actual_value=Value(value='Another value')))
+    assert len(game.actions_list) == 4
+    assert len(game.objects_dict) == 2
+    game = game.cancel_action(action_id=create_action.id)
+    assert len(game.actions_list) == 1
+    assert len(game.objects_dict) == 1

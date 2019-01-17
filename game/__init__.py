@@ -58,7 +58,7 @@ class Game:
             game_with_action_cancelled = game_with_action_cancelled.make_action(action=action)
 
         for action in self.actions_list[number_action_to_cancel + 1:]:
-            if ignoring_object_id and action.previous_value.id == ignoring_object_id:
+            if ignoring_object_id and action.previous_value and action.previous_value.id == ignoring_object_id:
                 continue
             game_with_action_cancelled = game_with_action_cancelled.make_action(action=action)
 
