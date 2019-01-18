@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, replace
 import typing
-from basic_types import Action, Value, Timer
+from basic_types import Action, Value, Timer, timer_tick
 from uuid import UUID
 import pickle
 
@@ -13,6 +13,7 @@ class Game:
     2. New object creation is an action from sequence of actions
     3. Objects are values that store different objects?
     4. Full text search must be supported by name, short_description, full_description
+    5. Timer is changed by time consuming actions
     """
     actions_list: typing.Tuple[Action, ...] = field(default_factory=tuple)
     objects_dict: typing.Dict[UUID, Value] = field(default_factory=dict)
@@ -37,7 +38,12 @@ class Game:
         new_game_state = replace(new_game_state,
                                  objects_dict={**new_game_state.objects_dict,
                                                **{action.actual_value.id: action.actual_value}},
-                                 actions_list=new_game_state.actions_list + (action,))
+                                 actions_list=new_game_state.actions_list + (action,),
+                                 timer=timer_tick(
+                                         timer=self.timer,
+                                         seconds=action.duration_in_seconds,
+                                 ).actual_value.value,
+                                 )
 
         return new_game_state
 

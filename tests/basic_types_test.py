@@ -327,27 +327,25 @@ def test_that_default_effect_duration_is_infinite():
 
 
 def test_that_default_timer_time_is_zero():
-    timer = Timer(name='default', actions_list=[], subscribed_effects_dict={}, ticks=[])
+    timer = Timer()
     assert timer.seconds_passed == 0
 
 
 def test_that_timer_tick_changes_timers_ticks():
-    timer = Timer(ticks=[20], name='default', actions_list=[], subscribed_effects_dict={})
+    timer = Timer(ticks=(20, ))
     assert timer.seconds_passed == 20
-    timer = timer_tick(timer=timer, seconds=50)
+    timer = timer_tick(timer=timer, seconds=50).actual_value.value
     assert timer.seconds_passed == 70
-    assert len(timer.actions_list) == 1
 
 
 def test_that_timer_tick_can_be_undone():
-    timer = Timer(name='My timer', actions_list=[], subscribed_effects_dict={}, ticks=[])
+    timer = Timer(name='My timer')
     assert timer.seconds_passed == 0
-    timer = timer_tick(timer=timer, seconds=5)
+    tick_action = timer_tick(timer=timer, seconds=5)
+    timer = tick_action.actual_value.value
     assert timer.seconds_passed == 5
-    assert len(timer.actions_list) == 1
-    timer = timer.untick(action=timer.actions_list[0])
+    timer = timer.untick(action=tick_action)
     assert timer.seconds_passed == 0
-    assert timer.actions_list == []
 
 
 def test_that_timer_tick_finishes_effect():
@@ -360,18 +358,18 @@ def test_that_timer_tick_finishes_effect():
     effect = Effect(name='Effect make 20 for 20 seconds', action=action_make_20, duration_in_seconds=20)
     value = Value(value=10, name='1')
     value_with_effect_aplied, effect_applied_to_value = apply_effect_to_value(effect=effect, value=value)
-    timer = Timer(name='Global', actions_list=[], subscribed_effects_dict={}, ticks=[])
+    timer = Timer(name='Global')
     timer = subscribe_effect_to_timer(effect=effect_applied_to_value, timer=timer)
 
     assert value_with_effect_aplied.value == 20
-    timer = timer_tick(timer=timer, seconds=10)  # 10 seconds passed, effect not finished yet
+    timer = timer_tick(timer=timer, seconds=10).actual_value.value  # 10 seconds passed, effect not finished yet
     effect_applied_to_value = timer.find_effect_by_id(effect_id=effect.id)
     assert timer.seconds_passed == 10
     assert effect_applied_to_value.finished is False
     value = effect_applied_to_value.get_value()
     assert value.value == 20
 
-    timer = timer_tick(timer=timer, seconds=10)
+    timer = timer_tick(timer=timer, seconds=10).actual_value.value
     assert timer.seconds_passed == 20
     effect_applied_to_value = timer.find_effect_by_id(effect_id=effect.id)
     assert effect_applied_to_value.finished is True

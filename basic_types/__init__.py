@@ -37,6 +37,7 @@ class Value:
 class Action:
     id: UUID = field(default_factory=uuid4)
     time: datetime.datetime = field(default_factory=datetime.datetime.now)
+    duration_in_seconds: float = 0
     name: str = f'Noname action'
     previous_value: typing.Optional[Value] = None
     actual_value: typing.Optional[Value] = None
@@ -71,8 +72,8 @@ class Effect:
 @dataclass(frozen=True)
 class Timer:
     name: str = 'Noname timer'
-    ticks: typing.List[float] = field(default_factory=list)
-    actions_list: typing.List[Action] = field(default_factory=list)
+    ticks: typing.Tuple[float, ...] = field(default_factory=tuple)
+    # actions_list: typing.List[Action] = field(default_factory=tuple)
     subscribed_effects_dict: typing.Dict[Effect, dict] = field(default_factory=dict)
 
     @property
@@ -231,35 +232,60 @@ def change_value(*,
     return changing_action
 
 
-def timer_tick(*, timer: Timer, seconds: float) -> Timer:
-    def rollback_timer_tick_function():
-        timer.ticks.remove(seconds)
-        return timer
+def timer_tick(*, timer: Timer, seconds: float) -> Action:
+    new_ticks = timer.ticks + (seconds, )
+    new_timer = replace(timer, ticks=new_ticks)
+    # ticking_action = change_value(
+    #         value_to_change=Value(value=timer),
+    #         changing_function=lambda x: replace(x, ticks=new_ticks))
 
-    action_tick = Action(
-            name=f'Timer "{timer.name}" changed by {seconds} seconds',
-            rollback_function=rollback_timer_tick_function,
-    )
-
-    timer.actions_list.append(action_tick)
-    timer.ticks.append(seconds)
-    for effect, start_time_dict in timer.subscribed_effects_dict.copy().items():
+    for effect, start_time_dict in new_timer.subscribed_effects_dict.copy().items():
         if effect.finished:
             continue
         start_time = start_time_dict['start_time']
         # If it is time for effect to finish
-        if start_time + effect.duration_in_seconds <= timer.seconds_passed:
-            del timer.subscribed_effects_dict[effect]  # unsubscribe effect
+        if start_time + effect.duration_in_seconds <= new_timer.seconds_passed:
+            del new_timer.subscribed_effects_dict[effect]  # unsubscribe effect
             finished_effect, set_finished_action = set_effect_finished(effect=effect)
-            timer.actions_list.append(set_finished_action)
-            timer.subscribed_effects_dict[finished_effect] = start_time_dict
+            new_timer.subscribed_effects_dict[finished_effect] = start_time_dict
 
-    return timer
+    ticking_action = Action(
+            name=f'Timer {timer.name} ticks on {seconds} seconds',
+            previous_value=Value(value=timer),
+            actual_value=Value(value=new_timer))
+
+    return ticking_action
+    # def rollback_timer_tick_function(timer_):
+    #     timer_ticks = list(timer_.ticks)
+    #     if seconds in timer_ticks:
+    #         timer_ticks.remove(seconds)
+    #     timer_ = replace(timer_, ticks=tuple(timer_ticks))
+    #     return timer_
+    #
+    # action_tick = Action(
+    #         name=f'Timer "{timer.name}" changed by {seconds} seconds',
+    #         rollback_function=rollback_timer_tick_function(timer),
+    # )
+    #
+    # timer.actions_list.append(action_tick)
+    # timer = replace(timer, ticks=timer.ticks + (seconds, ))
+    # for effect, start_time_dict in timer.subscribed_effects_dict.copy().items():
+    #     if effect.finished:
+    #         continue
+    #     start_time = start_time_dict['start_time']
+    #     # If it is time for effect to finish
+    #     if start_time + effect.duration_in_seconds <= timer.seconds_passed:
+    #         del timer.subscribed_effects_dict[effect]  # unsubscribe effect
+    #         finished_effect, set_finished_action = set_effect_finished(effect=effect)
+    #         timer.actions_list.append(set_finished_action)
+    #         timer.subscribed_effects_dict[finished_effect] = start_time_dict
+    #
+    # return timer
 
 
 def timer_untick(*, action: Action) -> Timer:
-    timer = action.rollback_function()
-    timer.actions_list.remove(action)
+    timer = action.previous_value.value
+    # timer.actions_list.remove(action)
     return timer
 
 
