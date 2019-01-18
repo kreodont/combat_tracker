@@ -31,7 +31,10 @@ class Character:
             return None
 
         new_character = old_character.change_field(field_name=field_name, new_value=new_field_value)
-        return Action(previous_value=container_value, actual_value=replace(container_value, value=new_character))
+        return Action(previous_value=container_value,
+                      actual_value=replace(container_value, value=new_character),
+                      name=f'Action for change character "{old_character.name}" field '
+                      f'{field_name} to {new_field_value}')
 
 
 if __name__ == '__main__':
