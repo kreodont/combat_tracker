@@ -94,3 +94,18 @@ def test_save_and_load():
     assert save_game_result == 'OK'
     loaded_game = Game.load_from_disk(filename='test_save_and_load.game')
     assert loaded_game == game
+
+
+def test_that_long_actions_change_timer():
+    game = Game()
+    game = game.make_action(action=Action(actual_value=Value(value=42), duration_in_seconds=13))
+    assert game.timer.seconds_passed == 13
+
+
+def test_that_canceling_long_action_rolls_back_timer():
+    game = Game()
+    long_action = Action(actual_value=Value(value=42), duration_in_seconds=13)
+    game = game.make_action(action=long_action)
+    assert game.timer.seconds_passed == 13
+    game = game.cancel_action(action_id=long_action.id)
+    assert game.timer.seconds_passed == 0
