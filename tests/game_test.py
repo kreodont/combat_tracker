@@ -1,5 +1,6 @@
 from game import Game
 from basic_types import Value, Action, change_value
+from character import Character
 
 
 def test_new_game_creation():
@@ -120,3 +121,17 @@ def test_that_it_is_possible_to_add_2_characters_with_same_name():
     character_1 = list(game.objects_dict.values())[0].value
     character_2 = list(game.objects_dict.values())[1].value
     assert character_1.name == character_2.name == 'Kolobok'
+    game = game.cancel_action_by_number(action_number=0)
+    assert len(game.objects_dict) == 1
+
+
+def test_changing_character_parameters():
+    game = Game()
+    game = game.add_character(character_name='Kolobok')
+    game = game.make_action(
+            action=Character.change_character_field_action(
+                    container_value=list(game.objects_dict.values())[0],
+                    field_name='strength',
+                    new_field_value=16))
+    kolobok = list(game.objects_dict.values())[0].value  # type: Character
+    assert kolobok.strength == 16
