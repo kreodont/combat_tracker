@@ -109,3 +109,14 @@ def test_that_canceling_long_action_rolls_back_timer():
     assert game.timer.seconds_passed == 13
     game = game.cancel_action(action_id=long_action.id)
     assert game.timer.seconds_passed == 0
+
+
+def test_that_it_is_possible_to_add_2_characters_with_same_name():
+    game = Game()
+    game = game.add_character(character_name='Kolobok')
+    assert len(game.objects_dict) == 1
+    game = game.add_character(character_name='Kolobok')
+    assert len(game.objects_dict) == 2
+    character_1 = list(game.objects_dict.values())[0].value
+    character_2 = list(game.objects_dict.values())[1].value
+    assert character_1.name == character_2.name == 'Kolobok'

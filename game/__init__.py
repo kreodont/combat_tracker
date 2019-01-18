@@ -3,6 +3,7 @@ import typing
 from basic_types import Action, Value, Timer, timer_tick
 from uuid import UUID
 import pickle
+from character import Character
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,11 @@ class Game:
 
         return game_with_action_cancelled
 
+    def cancel_action_by_number(self, action_number: int) -> 'Game':
+        if action_number > len(self.actions_list):
+            return self
+        return self.cancel_action(action_id=self.actions_list[action_number].id)
+
     def full_text_search(self, *, text_to_search) -> typing.Dict[UUID, Value]:
         return {k: v for k, v in self.objects_dict.items() if
                 text_to_search in v.name or
@@ -97,6 +103,12 @@ class Game:
         except Exception as e:
             print(e)
             return Game()
+
+    def add_character(self, character_name) -> 'Game':
+        adding_action = Action(
+                name=f'Adding character "{character_name}"',
+                actual_value=Value(value=Character(name=character_name)))
+        return self.make_action(action=adding_action)
 
 
 if __name__ == '__main__':
