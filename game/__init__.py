@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, replace
 import typing
-from basic_types import Action, Value
+from basic_types import Action, Value, Timer
 from uuid import UUID
 import pickle
 
@@ -16,6 +16,7 @@ class Game:
     """
     actions_list: typing.Tuple[Action, ...] = field(default_factory=tuple)
     objects_dict: typing.Dict[UUID, Value] = field(default_factory=dict)
+    timer: Timer = field(default_factory=Timer)
     name: str = 'Noname game'
 
     @property

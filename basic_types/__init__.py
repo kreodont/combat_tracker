@@ -70,10 +70,10 @@ class Effect:
 
 @dataclass(frozen=True)
 class Timer:
-    name: str
-    ticks: typing.List[float]
-    actions_list: typing.List[Action]
-    subscribed_effects_dict: typing.Dict[Effect, dict]
+    name: str = 'Noname timer'
+    ticks: typing.List[float] = field(default_factory=list)
+    actions_list: typing.List[Action] = field(default_factory=list)
+    subscribed_effects_dict: typing.Dict[Effect, dict] = field(default_factory=dict)
 
     @property
     def seconds_passed(self):
