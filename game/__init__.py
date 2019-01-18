@@ -78,6 +78,9 @@ class Game:
             return self
         return self.cancel_action(action_id=self.actions_list[action_number].id)
 
+    def cancel_last_action(self) -> 'Game':
+        return self.cancel_action_by_number(action_number=-1)
+
     def full_text_search(self, *, text_to_search) -> typing.Dict[UUID, Value]:
         return {k: v for k, v in self.objects_dict.items() if
                 text_to_search in v.name or

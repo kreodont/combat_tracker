@@ -135,3 +135,8 @@ def test_changing_character_parameters():
                     new_field_value=16))
     kolobok = list(game.objects_dict.values())[0].value  # type: Character
     assert kolobok.strength == 16
+    game = game.cancel_action_by_number(action_number=1)  # canceling changing strength to 16
+    kolobok = list(game.objects_dict.values())[0].value
+    assert kolobok.strength == 0
+    game = game.cancel_last_action()
+    assert len(game.objects_dict) == 0
