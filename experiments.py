@@ -1,3 +1,25 @@
+import sympy
+import re
+
+
+def fixed_multiplication(str_to_fix):
+    """
+    Inserts multiplication symbol wherever omitted.
+    """
+
+    pattern_digit_x = r"(\d)([A-Za-z])"         # 4x -> 4*x
+    pattern_par_digit = r"(\))(\d)"             # )4 -> )*4
+    pattern_digit_par = r"[^a-zA-Z]?_?(\d)(\()"  # 4( -> 4*(
+
+    for patt in (pattern_digit_x, pattern_par_digit, pattern_digit_par):
+        str_to_fix = re.sub(patt, r'\1*\2', str_to_fix)
+
+    return str_to_fix
+
+
+fixed_string = fixed_multiplication('4x(3y-5d20-3d4)')
+
+print(sympy.sympify('x + 1', evaluate=False))
 # import singleton
 # print(singleton.a)
 # --------------------------- task ---------------
